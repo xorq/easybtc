@@ -3,7 +3,8 @@
 	'underscore',
 	'backbone',
 	'models/bitcoin',
-], function($, _, Backbone,Bitcoin) {
+	'models/bitcoinjs.min',
+], function($, _, Backbone,Bitcoin, Bitcoinjs) {
 	function Transaction() {
 		this.guidance = false;
 		this.from = '';
@@ -14,13 +15,55 @@
 		this.passphrase = '';
 		this.salt = '';
 		this.balance = '';
-		this.unspent = [ { } ];
+		this.unspents = [ { } ];
 		this.qrcode = '';
 		this.feeMode = 'auto';
 		this.showImportQR = false;
 		this.signAddress = "";
 		this.expectedField = undefined;
+		this.hash = '';
+		this.purpose = '';
+		this.advanced = false;
 		
+		this.nextData = function() {
+			return JSON.stringify({
+				recipients : [ { address:'', amount:0, checkedAddress:'', thumb:'' } ],
+				from : this.recipients[0].address,
+				unspents : [{
+					'transaction_hash' : this.hash,
+					'value': this.recipients[0].amount,
+					'transaction_index' : 0
+				}]
+			})
+		},
+
+		this.importData = function(code) {
+			var jsonCode = JSON.parse(code);
+			console.log(jsonCode.unspent)//_.pluck(jsonCode.unspents, 'value'));
+			if (jsonCode.recipients) { this.recipients = jsonCode.recipients};
+			if (jsonCode.unspents) { this.unspents = jsonCode.unspents};
+			this.balance = cryptoscrypt.sumArray(_.pluck(jsonCode.unspents, 'value'));
+			this.from = jsonCode.from;
+		},
+
+		this.exportData = function() {
+			recipientsExport = [];
+			this.recipients.forEach(function(v){ 
+			recipientsExport.push(_.pick(v,'address','amount'));
+			});
+			unspentExport = [];
+			this.unspents.forEach(function(v){ 
+				unspentExport.push(_.pick(v,'transaction_hash','value','transaction_index'));
+			});
+			data = {
+				recipients : recipientsExport,
+				from : this.from,
+				unspents : unspentExport
+			};
+			return JSON.stringify(data);
+
+		}
+
 		this.getJSONrequest = function(url,success,fail) {
 			return $.ajax({
 				url: url,
@@ -81,26 +124,16 @@
 				qrPartials: this.qrPartials,
 				qrTotal: this.qrTotal,
 				qrParts: this.qrParts,
-				signAddress: this.signAddress
+				signAddress: this.signAddress,
+				purpose: this.purpose,
+				signed: this.hash && true,
+				advanced: this.advanced
 			};
 		}
 
 		this.export = function() {
-			recipientsExport = [];
-			this.recipients.forEach(function(v){ 
-			recipientsExport.push(_.pick(v,'address','amount'));
-			});
-			unspentExport = [];
-			this.unspent.forEach(function(v){ 
-				unspentExport.push(_.pick(v,'transaction_hash','value','transaction_index'));
-			});
-			data = {
-				recipients : recipientsExport,
-				from : this.from,
-				balance : this.balance,
-				unspent : unspentExport
-			};
-			data = JSON.stringify(data);
+
+			var data = this.exportData();
 			var chunkLength = 150;
 			var fullCheck = sjcl.hash.sha256.hash(data)[0];
 			var numChunks = Math.ceil(data.length / chunkLength);
@@ -178,7 +211,7 @@
 
 			this.recipients = jsonCode.recipients;
 			this.from = jsonCode.from;
-			this.unspent = jsonCode.unspent;
+			this.unspents = jsonCode.unspent;
 			this.balance = jsonCode.balance;
 			return true;
 		}
@@ -208,7 +241,7 @@
 				if (this.feeMode == 'custom') {
 					return this.fee
 				}
-				if (this.unspent.length>0) {
+				if (this.unspents.length>0) {
 					var numOfInputs = cryptoscrypt.bestCombination(
 						_.pluck(this.unspent, 'transaction_index'),
 						master.getTotal()
@@ -232,7 +265,99 @@
 			}
 		}
 
-		this.sign = function(passphrase,salt) {
+		this.doChain = function(numberOfTransactions) {
+
+			//Initialize result variable
+			var resa = {
+				changeAddresses:[],
+				results : [],
+				recovery : []
+			};
+
+			var nextHash = function(resa, passphrase, salt, hashRedeemed, index, valueRedeemed, recipientAddress, stepValue, fee, numberOfTransactions, previousNextPkey ) {
+				
+				// Find what amounts are : withdrawn at this step and leftover
+				//stepValue = typeof(stepValue) == 'object' ? stepValue[0] : stepValue;
+				stepValue = Math.min((cryptoscrypt.sumArray(valueRedeemed) - fee), (stepValue) );
+				var newValue = cryptoscrypt.sumArray(valueRedeemed) - (fee + stepValue);
+				
+				//get the private keys:
+				var pkey = previousNextPkey ? previousNextPkey : cryptoscrypt.getPkey(passphrase, salt);
+				var nextPkey = cryptoscrypt.getPkey(passphrase + (1 + resa.results.length) , salt);
+				var changeAddress = cryptoscrypt.pkeyToAddress(nextPkey);
+
+				//Is this the last transaction?
+				var isLast = ((newValue <= 0) || (numberOfTransactions <= resa.results.length));
+
+				//Generate the transaction and sign, then get the hash
+				var tx = cryptoscrypt.buildTx(
+					hashRedeemed,
+					(isLast ? [0] : index),
+					[cryptoscrypt.sumArray(valueRedeemed)],
+					recipientAddress,
+					changeAddress,
+					[stepValue],
+					fee,
+					true
+				);
+				var signedTx = cryptoscrypt.signRawTx(tx[0].toHex(), pkey)
+				var newHash = signedTx.hash;
+
+				//Push results to the result variable
+				resa.changeAddresses.push(changeAddress);
+				resa.results.push(signedTx.raw);
+
+
+				//
+				if (!isLast) {
+				// This is a recovery transaction generator, it is a double safety in case the password is forgotten, not used for now.
+				/*	var txRecovery = cryptoscrypt.buildTx(
+						[newHash],
+						[1],
+						[newValue],
+						[master.from],
+						changeAddress,
+						[newValue - fee],
+						fee,
+						true
+					);
+					var signedRecovery = cryptoscrypt.signRawTx(txRecovery[0].toHex(), nextPkey)
+					resa.recovery.push(signedRecovery.raw);
+				*/
+					nextHash(resa, passphrase, salt, [newHash], [1], [newValue], recipientAddress, stepValue, fee, numberOfTransactions, nextPkey)
+				}
+			}
+			// Calculate how much is 
+			var stepValue = _.pluck(this.recipients, 'amount')[0];
+			if (this.recipients.length > 1) {
+				window.alert('Chains are only supported with one recipient');
+				return
+			};
+			var numberOfTransactions = window.prompt('How many transactions would you like ? (Ignore or cancel for spending all the funds)');
+			numberOfTransactions = isNaN(parseInt(numberOfTransactions)) ? 100 : parseInt(numberOfTransactions) - 1 
+			
+			if (numberOfTransactions > 10) {
+				var answer = window.confirm( 'This might take over ' + ( (10 * Math.min(Math.ceil(cryptoscrypt.sumArray(_.pluck(this.unspents, 'value')) / stepValue), numberOfTransactions))) + ' secondes on a regular computer, do you want to continue anyways?')
+				if (answer == false) {
+					return
+				}
+			}
+			nextHash(
+				resa,
+				this.passphrase,
+				this.salt,
+				_.pluck(this.unspents, 'transaction_hash'),
+	 			_.pluck(this.unspents, 'transaction_index'),
+	 			_.pluck(this.unspents, 'value'),
+	  			_.pluck(this.recipients, 'address'),
+	  			_.pluck(this.recipients, 'amount')[0],
+	  			this.fee,
+	  			numberOfTransactions
+			)
+			return resa;
+		},
+
+		this.sign = function(passphrase, salt) {
 
 			if (this.getTotal()>this.balance) {
 				window.alert('There is not enough money available');
@@ -242,17 +367,24 @@
 			// Build the unsigned transaction;
 
 			var tx = cryptoscrypt.buildTx(
-			  _.pluck(this.unspent, 'transaction_hash'),
-			  _.pluck(this.unspent, 'transaction_index'),
-			  _.pluck(this.unspent, 'value'),
-			  _.pluck(this.recipients, 'address'),
-			  this.from,
-			  _.pluck(this.recipients, 'amount'),
-			  this.fee
+				_.pluck(this.unspents, 'transaction_hash'),
+				_.pluck(this.unspents, 'transaction_index'),
+				_.pluck(this.unspents, 'value'),
+				_.pluck(this.recipients, 'address'),
+				this.from,
+				_.pluck(this.recipients, 'amount'),
+				this.fee
 			);
 
-			// Display unsigned transaction
+				console.log(_.pluck(this.unspents, 'transaction_hash'))
+				console.log(_.pluck(this.unspents, 'transaction_index'))
+				console.log(_.pluck(this.unspents, 'value'))
+				console.log(_.pluck(this.recipients, 'address'))
+				console.log(this.from)
+				console.log(_.pluck(this.recipients, 'amount'))
+				console.log(this.fee)
 
+			// Display unsigned transaction
 			console.log(tx[0].toHex());
 			
 			// Calculate the private key;
@@ -260,18 +392,17 @@
 			pkey = cryptoscrypt.getPkey(passphrase, salt);
 			this.signAddress = cryptoscrypt.pkeyToAddress(pkey);
 			cryptoscrypt.pkeyToAddress(pkey);
+			txs = cryptoscrypt.signTx(tx, pkey);
 
 			// Perform the signatures
-
-			tx = cryptoscrypt.signTx(tx, pkey);
-
+			//newHash = cryptoscrypt.getHashFromTx(tx)
 			//Create the QR code
-
-			this.qrcode = tx[0].toHex().toString();
+			this.qrcode = txs[0].toHex().toString();
 
 			// Show the signed transaction Hex
-
-			console.log(tx[0].toHex());
+			console.log(txs[0]);
+			console.log(txs[0].toHex());
+			master.hash = cryptoscrypt.getHashFromTx(txs[0].toHex());
 		}
 
 		this.updateUnspent = function(from, success, fail) {
@@ -286,17 +417,17 @@
 			var master = this;
 
 			var successFunction = function(data) {
-				master.unspent = data.data.outputs;
-				if (master.unspent[0].value) {
-					master.balance = cryptoscrypt.sumArray(_.pluck(master.unspent, 'value'))
+				master.unspents = data.data.outputs;
+				if (master.unspents[0].value) {
+					master.balance = cryptoscrypt.sumArray(_.pluck(master.unspents, 'value'))
 				}
 				def.resolve();
 			};
 
 			var successFunctionOnion = function(data) {
-				master.unspent = data.unspent_outputs;
-				if (master.unspent[0].value) {
-					master.balance = cryptoscrypt.sumArray(_.pluck(master.unspent, 'value'))
+				master.unspents = data.unspent_outputs;
+				if (master.unspents[0].value) {
+					master.balance = cryptoscrypt.sumArray(_.pluck(master.unspents, 'value'))
 
 					//Rename keys to match
 					b = [];
@@ -305,15 +436,15 @@
 						value : "value",
 						tx_output_n : "transaction_index",
 					};
-					master.unspent.forEach( function(value, index) {
+					master.unspents.forEach( function(value, index) {
 						block = {};
-						_.each(master.unspent[index], function(value2, key) {
+						_.each(master.unspents[index], function(value2, key) {
 							key = map[key] || key;
 							block[key] = value2;
 						})
 						b[index] = block;
 					});
-					master.unspent = b;
+					master.unspents = b;
 				}
 
 				def.resolve();

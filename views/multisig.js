@@ -19,7 +19,7 @@ define([
 			'click button[name=btn-add]' : 'addPubkey',
 			'click button[name=btn-delete-pubkey]' : 'deletePubkey',
 			//'click span[name=pubkey-field-title]' : 'showData',
-			'click select[name=number-of-signatures]' : 'updateNumberOfSignatures',
+			'change select[name=number-of-signatures]' : 'updateNumberOfSignatures',
 			'keyup select[name=number-of-signatures]' : 'updateNumberOfSignatures',
 			'click button[name=btn-scan]' : 'scanAddress',
 			'click button[name=btn-scan-recipient]' : 'scanRecipient',
@@ -29,8 +29,8 @@ define([
 			'click button[name=btn-transaction]' : 'txButton',
 			'click button[name=btn-add-recipient]' : 'addRecipient',
 			'click button[name=btn-delete-recipient]' : 'deleteRecipient',
-			'blur input[name=recipient-field]' : 'lookupRecipient',
-			'blur input[name=amount-field]' : 'changedAmount',
+			'change input[name=recipient-field]' : 'lookupRecipient',
+			'change input[name=amount-field]' : 'changedAmount',
 			'click button[name=btn-all]' : 'putAll',
 			'click [name=btn-export-tx]' : 'drawTxQr',
 			'click [name=btn-import-data]' : 'importQrTx',
@@ -60,11 +60,9 @@ define([
 			} else {
 				$('button[name=load-data]').removeClass('disabled')
 			}
-
 		},
 
 		loadData: function() {
-			//console.log('http://tinyurl.com/' + $('input[name=tinyurl]').val());
 			window.location.href = 'http://tinyurl.com/' + $('input[name=tinyurl]').val()
 		},
 
@@ -534,14 +532,16 @@ define([
 			$('#qrcode-display-window').append('<h2>Data</h2><h5 style="word-break:break-all; margin-right: 30px">' + data + '</h5>');
 			$('#dialog-qrcode').dialog(opt);
 			$('#dialog-qrcode').css({
-				'border': '1px solid #b9cd6d',
-				'background':'#b9cd6d', 
-				'border': '1px solid #b9cd6d', 
-				'color': '#FFFFFF', 
+				'border': '1px solid #ccec8c',
+				'background':'#ccec8c', 
+				'border': '2px solid #ccec8c', 
+				'color': '#000000', 
 				'title': 'Details',
-				'font-weight' : 'bold'
+				//'font-weight' : ''
 			});
 			$('#dialog-qrcode').dialog('open')
+			$('[role=dialog]').addClass('hidden-print')
+
 		},
 
 		dialogQrCodes: function(dataArray, text, title, QRDataSize) {
@@ -587,12 +587,12 @@ define([
 			$('#qrcode-display-window').append('<h2>Data</h2><h5 style=word-break:break-all>' + dataArray.join('</br></br>') + '</h5>');
 			$('#dialog-qrcodes').dialog(opt);
 			$('#dialog-qrcodes').css({
-				'border': '1px solid #b9cd6d',
-				'background':'#b9cd6d', 
-				'border': '1px solid #b9cd6d', 
-				'color': '#FFFFFF', 
+				'border': '1px solid #ccec8c',
+				'background':'#ccec8c', 
+				'border': '2px solid #ccec8c',
+				'color': '#000000', 
 				'title': 'Details',
-				'font-weight' : 'bold',
+				//'font-weight' : 'bold',
 				'hide': { effect: "fade", duration: 2000 }
 			});
 			$('#dialog-qrcodes').dialog('open')//.parent().effect('slide');
@@ -632,7 +632,7 @@ define([
 		},
 
 		putAll: function(ev) {
-			this.model.putAll(ev.currentTarget.id);
+			var changed = this.model.putAll(ev.currentTarget.id);
 			$('input[name=amount-field]')[0].value = this.model.recipients[ev.currentTarget.id].amount / 100000000;
 			//this.renderTransaction('reload');
 			//$('div[name=multiTransaction]').removeClass('hidden');
@@ -642,11 +642,13 @@ define([
 			var field = parseInt(ev.currentTarget.id);
 			var inputValue = ev.currentTarget.value;
 			this.model.recipients[field].amount = 100000000 * inputValue;
+			this.model.deleteSignatures();
 			//this.render();
 			//$('div[name=multiTransaction]').removeClass('hidden');
 		},
 
 		lookupRecipient: function(ev, field, inputValue) {
+			this.model.deleteSignatures();
 			var master = this;
 			var field = ev ? parseInt(ev.currentTarget.id) : field; 
 			var inputValue = ev ? ev.currentTarget.value : inputValue;
@@ -675,18 +677,21 @@ define([
 		},
 
 		addRecipient: function() {
+			this.model.deleteSignatures();
 			this.model.addRecipient();
 			this.renderTransaction(null);
 			//$('div[name=multiTransaction]').removeClass('hidden');
 		},
 
 		txButton: function() {
+			$('div[name=multisig-builder').css('display','none');
 			$('span[name=chevron-tx-button]').toggleClass('glyphicon-triangle-left').toggleClass('glyphicon-triangle-bottom')
 			if ($('div[name=multiTransaction]',this.el).children().length == 0) {
 				$('.form1').prop('disabled', 'disabled');
 				this.renderTransaction('easeOutSine');
 
 			} else {
+				$('div[name=multisig-builder').css('display','');
 				$('div[name=multiTransaction]',this.el).hide('easeOutSine');
 				setTimeout(function() {
 					$('div[name=multiTransaction]',this.el).children().remove();
@@ -699,12 +704,25 @@ define([
 		renderTransaction: function(init) {
 			var action = init ? 'easeOutSine' : null;
 			var template = _.template("\
-				<br><label>Recipient<%=recipients.length > 1 ? 's' : ''%>:</label>\
+					<div id='' name='pubkey-field'>\
+					<label class='row col-xs-12'>From:</label>\
+						<div class='col-xs-12 row' style='padding-right: 40px; margin-right: 0px;'>\
+							<div class='col-xs-7' style='padding-left:0px;padding-right:5px'>\
+								<input disabled type='text' value=<%=from%> class='form-horizontal form-control input-group' placeholder='Bitcoin address or Onename'>\
+								</input>\
+							</div>\
+							<div class='col-xs-5 col-md-2' style='margin-bottom:10px;padding-left:0px;padding-right:5px'>\
+								<input disabled type='text' class='form-horizontal form-control input-group'  placeholder='Amount in BTC' value='<%=balance/100000000%> BTC'>\
+								</input>\
+							</div>\
+						</div>\
+					</div>\
+				<br><label class='row col-xs-12'>To:</label>\
 				<% _.each(recipients, function(recipient, index) {%>\
 					<div id='<%=index%>' name='pubkey-field'>\
 						<div class='col-xs-12 row' style='padding-right: 40px; margin-right: 0px;'>\
 							<div class='col-xs-7' style='padding-left:0px;padding-right:5px'>\
-								<input type='text' value='<%=recipient.address%>' class='form2 form-horizontal form-control input-group' id='<%=index%>' name='recipient-field'  placeholder='Address of beneficiary'>\
+								<input type='text' value='<%=recipient.address%>' class='form2 form-horizontal form-control input-group' id='<%=index%>' name='recipient-field'  placeholder='Bitcoin address or Onename'>\
 								</input>\
 							</div>\
 							<div class='col-xs-5 col-md-2' style='padding-left:0px;padding-right:5px'>\
@@ -727,7 +745,7 @@ define([
 				<div class=col-xs-12>\
 				</br>\
 				<button type='button' class='form2 btn btn-default' name='btn-add-recipient' style='margin-bottom:20px'>\
-				ADD\
+				Add Recipient\
 				<span class='glyphicon glyphicon-plus-sign glyphicon-align-center' style='color:green;horizontal-align:middle;vertical-align:middle;horizontal-align:middle;bottom:1px'></span>\
 				</button>\
 				</div>\
@@ -747,7 +765,9 @@ define([
 				template(
 					{
 						recipients : this.model.recipients,
-						unspents : this.model.unspents
+						unspents : this.model.unspents,
+						from : this.model.multisig.address,
+						balance : this.model.balance
 					}
 				)
 			)
@@ -796,9 +816,7 @@ define([
 		},
 
 		dataGetter: function(text, title, callback, callback2) {
-
 			$('#dialog-data-getter').dialog('destroy');
-
 			$( '#dialogs' ).html('\
 				<div id="dialog-data-getter" title="' + title + '">'
 
@@ -877,10 +895,10 @@ define([
 				unspents:master.model.unspents,
 				numberOfSignatures:master.model.numberOfSignatures
 			}));
-			$('div[id=contents]').css('border','5px solid black');
+			$('div[id=contents]').css('border','2px solid black');
 			this.renderAddress();
 			var hash = sjcl.codec.base64.fromBits(sjcl.hash.sha256.hash(JSON.stringify(this.model.exportLinkData()))).toString().slice(0,20);
-			if (hash != '5m7n0AV4A1joXBDgkg56') {
+			if ((hash != '5m7n0AV4A1joXBDgkg56') && ( hash !='t4Wnyse6w/XlcRH4WLvw')) {
 				this.updateUnspent();
 			}
 		},
@@ -889,11 +907,12 @@ define([
 			$('select[name=number-of-signatures]').val(this.model.numberOfSignatures)
 			this.model.findAddress();
 			if (this.model.multisig.address) {
-				$('[name=label-address]').html(this.model.multisig.address);
+				console.log($('[name=multisig-address]'))
+				$('[name=multisig-address]').val(this.model.multisig.address);
 				//'Balance: ' + (this.model.balance ? this.model.balance/100000000 + ' BTC' : 'No Data')
-				$('[name=label-balance]').html('Balance: ' + (this.model.balance ? this.model.balance/100000000 + ' BTC' : 'No Data'));
+				$('[name=multisig-balance]').val(this.model.balance ? this.model.balance/100000000 + ' BTC' : 'No Data');
 			} else {
-				$('[name=label-address]').html('Your Multisig Address Will Appear Here');
+				//$('[name=multisig-adderess]').html('');
 			}
 		},
 

@@ -55,7 +55,6 @@
     padding:10px;
 }
 
-
 .toButton{
     font-size:18px;
     height:34px;
@@ -69,4 +68,7 @@
 
 .input-group{
     padding-left:10px;
+}
+.btn{
+    top:0px;
 }

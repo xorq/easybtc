@@ -22,6 +22,10 @@
 		
 		this.rawTx = '';
 
+		this.deleteSignatures = function() {
+			this.signatures = {}
+		},
+
 		this.buildMultisig = function() {
 			//try {
 				master = this;
@@ -235,7 +239,6 @@
 		},
 
 		this.importData = function(code) {
-			var master = this;
 			var jsonCode = JSON.parse(code);
 			if (jsonCode.recipients) { this.recipients = jsonCode.recipients};
 			if (jsonCode.unspents) { this.unspents = jsonCode.unspents};
@@ -244,9 +247,6 @@
 				this.loadRedeemscript(this.multisig.redeemscript);
 			}
 			if (jsonCode.signatures) {
-				/*_.each(this.pubkeys, function(pubkey,index) {
-					master.pubkeys[index].signature = jsonCode.signatures[index];
-				});*/
 				this.signatures = jsonCode.signatures
 			}
 			this.balance = cryptoscrypt.sumArray(_.pluck(jsonCode.unspents, 'value'));
@@ -337,10 +337,14 @@
 		},
 
 		this.putAll = function(field) {
+			var firstAmount = this.recipients[field][ 'amount' ]
 			var sumAmounts = cryptoscrypt.sumArray( 
 				_.pluck(this.recipients, 'amount')
 			);
 			this.recipients[field][ 'amount' ] = Math.max(0, parseInt(this.balance - sumAmounts - this.fee + this.recipients[field][ 'amount' ]));
+			if (this.recipients[field][ 'amount' ] != firstAmount) {
+				this.deleteSignatures();
+			}
 		},
 
 		this.getAddressUnspent = function() {

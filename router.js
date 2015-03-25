@@ -15,15 +15,16 @@ define([
       '': 'index',
       'vault' : 'vault',
       'coinvoice' : 'coinvoice',
-      'multisig' : 'multisig'
+      'multisig' : 'multisig',
+      'chain' : 'chain'
     },
     currentView: false,
     index: function() {
       if (this.currentView) {
         this.currentView.undelegateEvents();
       }
-      this.currentView = new IndexView({ model: new Transaction });
-      this.currentView.render();
+      this.currentView = new IndexView({ model: new Transaction});
+      this.currentView.init('normal');
       $('.nav > li').removeClass('active').filter('[name=create]').addClass('active');
     },
     vault: function() {
@@ -49,7 +50,15 @@ define([
       this.currentView = new MultisigView({ model: new Multisig });
       this.currentView.init();
       $('.nav > li').removeClass('active').filter('[name=multisig]').addClass('active');
-    } 
+    },
+    chain: function() {
+      if (this.currentView) {
+        this.currentView.undelegateEvents();
+      }
+      this.currentView = new IndexView({ model: new Transaction});
+      this.currentView.init('chain');
+      $('.nav > li').removeClass('active').filter('[name=chain]').addClass('active');
+    }  
   });
 
   var initialize = function(){

@@ -1,11 +1,28 @@
 define([
+	'underscore',
 	'models/scrypt',
 	'models/pbkdf2',
 	'models/bitcoinjs.min',
-	'models/biginteger'
-], function(Scrypt, PBKDF2, Bitcoin, BigInteger) {
+	'models/biginteger',
+], function(_, Scrypt, PBKDF2, Bitcoin, BigInteger) {
 	
 	return window.cryptoscrypt = cryptoscrypt = {
+
+		getHashFromTx:function(tx) {
+			console.log(tx)
+			var txh = Bitcoin.Transaction.fromHex(tx)
+			var txb = Bitcoin.TransactionBuilder.fromTransaction(txh);
+			console.log(txb)
+			return cryptoscrypt.revertHash(txb.build().getHash().toString('hex'));
+		},
+
+		revertHash: function(s) {
+			var newHash = ''
+				for (var i = 0; i <=s.length-2; i=i+2) {
+					newHash = ((s.substring(i,i+2)) + newHash);
+				}
+			return newHash
+		},
 
 		getTinyURL: function(longURL, success) {
 			// Create unique name for callback function:
@@ -69,6 +86,19 @@ define([
 			return Bitcoin.ECKey.fromWIF(pkey.toWIF()).pub.getPubKey().toString();
 		},
 
+		WIFToPkey: function(WIF) {
+
+			key = Bitcoin.ECKey.makeRandom()
+			//console.log((key.d).toString(16).toUpperCase())
+			//console.log(key.pub.getAddress().toString())
+			//test = Bitcoin.ECKey.fromWIF(WIF);
+			//Bitcoin.ECKey.toHex(test);
+		},
+
+		pkeyToWIF: function(pkey) {
+			return pkey.toWIF();
+		},
+
 		pubkeyToAddress: function(pubkey) {
 			try {
 				pub =  Bitcoin.ECPubKey.fromHex(pubkey);
@@ -96,12 +126,13 @@ define([
 				var scrypt = scrypt_module_factory( Math.pow(2,29) );
 				var n = Math.pow(2, 18)
 			} catch(err) {
+				window.alert('Not enough memory for warp wallet key stretching')
 				try {
 					var scrypt = scrypt_module_factory( Math.pow(2,22) );
-					console.log('switched to a weaker n = 2^10 instead of 2^18');
+					window.alert('switched to a weaker key stretching (n = 2^10 instead of 2^18, think of adding 2 more random words for equivalent entropy)');
 					var n = Math.pow(2, 10)
 				} catch(err) {
-					console.log('your device seem to be too weak for any decent key stretching')
+					window.alert('Not enough memory for any decent key stretching')
 				}
 			}
 			var result = scrypt.to_hex(
@@ -196,6 +227,18 @@ define([
 			return tx
 		},
 
+		signRawTx: function(rawTx, pkey) {
+			var txh = Bitcoin.Transaction.fromHex(rawTx)
+			var txb = Bitcoin.TransactionBuilder.fromTransaction(txh);
+			_.each(txb.tx.ins, function(data, index) {
+				txb.sign(index, pkey);
+			});
+			return { 
+				'hash' : cryptoscrypt.revertHash(txb.build().getHash().toString('hex')) , 
+				'raw' : txb.build().toHex() 
+			}
+		},
+
 		sumArray: function(a) {
 			return _.reduce(a, function(memo, num){ return 1*memo + 1*num; }, 0) ;
 		},
@@ -239,18 +282,19 @@ define([
 			return result;
 		},
 
-		buildTx: function (unspentHashs, unspentHashsIndex, unspentValues, toAddresses, fromAddress, amounts, fee) {
+		buildTx: function (unspentHashs, unspentHashsIndex, unspentValues, toAddresses, fromAddress, amounts, fee, redeemAll) {
 			
-			/*
-			console.log(unspentHashs);
+			redeemAll = redeemAll ? (unspentHashs.length > 10 ? false : redeemAll) : false;
+			/*console.log(unspentHashs);
 			console.log(unspentHashsIndex);
 			console.log(unspentValues);
 			console.log(toAddresses);
 			console.log(fromAddress);
 			console.log(amounts);
 			console.log(fee);
+			console.log(redeemAll);
 			*/
-
+			
 			if ( cryptoscrypt.sumArray(amounts) + fee > cryptoscrypt.sumArray(unspentValues) ) {
 				return
 			};
@@ -258,16 +302,22 @@ define([
 			tx = new Bitcoin.Transaction();
 			for (var i = 0 ; i < toAddresses.length ; i++) {
 				tx.addOutput(toAddresses[i], amounts[i]);
+
 				totalRequested += amounts[i]
+
 			}
 			var totalRedeemed = 0;
-			selectedComb = cryptoscrypt.bestCombination(unspentValues, totalRequested);
+			selectedComb = redeemAll ? _.range(unspentValues.length) : cryptoscrypt.bestCombination(unspentValues, totalRequested);
+		
 			$.each(selectedComb,function( idx, obj ){
 				tx.addInput( unspentHashs[ obj ],unspentHashsIndex[ obj ]);
 				totalRedeemed += parseInt( unspentValues[ obj ]);
+			
 			});
+		
 			if ( totalRedeemed > totalRequested + fee ) {
 				tx.addOutput(fromAddress,totalRedeemed - ( totalRequested + fee ));
+			
 			};
 			return [tx,selectedComb.length];
 		},
