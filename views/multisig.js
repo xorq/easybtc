@@ -15,7 +15,7 @@ define([
 		template: _.template($('#multisigViewTemplate').text()),
 		//templatePubkey: _.template($('#pubkeyTemplate').text()),  
 		events: {
-			'blur input[name=entry-field]' : 'lookup',
+			'change input[name=entry-field]' : 'lookup',
 			'click button[name=btn-add]' : 'addPubkey',
 			'click button[name=btn-delete-pubkey]' : 'deletePubkey',
 			//'click span[name=pubkey-field-title]' : 'showData',
@@ -74,7 +74,12 @@ define([
 			}
 			mink = this.model.exportLinkDataForTinyUrl() + '#multisig'
 			var link = 'http://easy-btc.org/index.html?data=' + mink ;
-			cryptoscrypt.getTinyURL(link, success)
+			try { 
+				cryptoscrypt.getTinyURL(link, success);
+			} catch(err) { 
+				window.alert('There was an error, probably too much data for tinyURL');
+			}
+
 			this.loadTiny();
 			/*
 			function lzw_encode(s) {
@@ -233,7 +238,7 @@ define([
 					checksum : sjcl.hash.sha256.hash(master.model.pubkeys[field].address + master.model.pubkeys[field].signature)[0],
 					txchecksum : sjcl.hash.sha256.hash(master.model.getTx())[0]
 				}) : null;
-			var text = 'This is the signature for this transaction for ' + this.model.pubkeys[field].address;
+			var text = 'This is the signature from:</br> ' + this.model.pubkeys[field].address + '</br></br>';
 			var title = 'Signature of ' + this.model.pubkeys[field].address;
 			this.dialogQrCode(data , text, title);
 		},
@@ -250,7 +255,6 @@ define([
 			field = ev.currentTarget.id;
 			$('div[name=create-signature-area][id=' + field + ']').toggle('easeOutSine');
 			$('span[name=chevron-create-signature][id=' + field + ']').toggleClass('glyphicon-triangle-left').toggleClass('glyphicon-triangle-bottom')
-
 		},
 
 		makeSignature: function(ev){
@@ -260,12 +264,24 @@ define([
 			var salt = $('input[name=salt-field][id=' + field + ']').val();
 			if (!cryptoscrypt.validPkey(passphrase)) {
 				passphrase = (cryptoscrypt.warp(passphrase,salt)[0]);
+				this.model.sign(passphrase, field);
+				var strongSigningAddress = this.model.signingAddress;
+				if (strongSigningAddress != this.model.pubkeys[field].address){
+					var weakPassphrase = (cryptoscrypt.weakWarp(weakPassphrase,salt)[0]);
+					this.model.sign(passphrase, field);
+					if (this.model.signingAddress != this.model.pubkeys[field].address){
+						window.alert('You entered the password/private key for the address "' + strongSigningAddress + '", therefore this signature is invalid, however the application will continue for your testing purposes')
+					}
+				}
 			}
-			this.model.sign(passphrase, field);
+
 			$('[name=signature-hex][id=' + field + ']').val(this.model.signatures[field])
-			//this.saveSignature(ev, );
 			this.renderSignature(null);
-			//this.openSubmitSignature(ev);
+			
+			// If there is enough signatures, automatically perform multisig
+			if (_.filter(this.model.signatures,function(signature){return signature}).length == this.model.numberOfSignatures) {
+				this.performMultisig();
+			}
 		},
 
 		cameraClick : function(ev) {
@@ -338,7 +354,6 @@ define([
 				template(
 					{
 						index: index,
-						signatures: this.model.pubkeys
 					}
 				)	
 			)
@@ -355,7 +370,8 @@ define([
 				$('.form2').removeClass('disabled');
 				$('.form2').prop('disabled', 'disabled');
 				var template = _.template("\
-					<br>\
+					</br>\
+					<h4 class='' style='color: <%= signaturesProvided < numberOfSignatures ? 'red' : 'green' %>'></br>You have <%=signaturesProvided%> out of <%=numberOfSignatures%> signatures. <%=(signaturesProvided == numberOfSignatures) ? '' : ('You need ' + (numberOfSignatures - signaturesProvided) + ' more signature' + ((numberOfSignatures - signaturesProvided) > 1 ? 's' : ''))%> </h4>\
 					<%pubkeys.forEach(function(pubkey, index) {%>\
 						<div class='col-xs-12 input-group'>\
 							<h4 class='' style='word-break:break-all; font-size:18px; padding-top:7px'><%=pubkey.address%></h4>\
@@ -379,18 +395,19 @@ define([
 					<h4 name='signed-tx-data'>\
 					</h4>\
 				");
-				$('div[name=multi-signature]',this.el).hide();
+				
 
 				$('div[name=multi-signature]',this.el).html(
 					template(
 						{
-							pubkeys : this.model.getPubKeys(),
+							pubkeys : this.model.pubkeys,
 							signatures : this.model.signatures,
-							numberOfSignatures : this.model.numberOfSignatures
+							numberOfSignatures : this.model.numberOfSignatures,
+							signaturesProvided : _.filter(this.model.signatures, function(signature) { return signature }).length
 						}
 					)
 				);
-
+				$('div[name=multi-signature]',this.el).hide();
 				$('div[name=multi-signature]',this.el).show(action);
 
 			} else {
@@ -584,7 +601,7 @@ define([
 				show: { effect: "fade", duration: 400 }
 			};
 
-			$('#qrcode-display-window').append('<h2>Data</h2><h5 style=word-break:break-all>' + dataArray.join('</br></br>') + '</h5>');
+			//$('#qrcode-display-window').append('<h2>Data</h2><h5 style=word-break:break-all>' + dataArray.join('</br></br>') + '</h5>');
 			$('#dialog-qrcodes').dialog(opt);
 			$('#dialog-qrcodes').css({
 				'border': '1px solid #ccec8c',
@@ -605,8 +622,8 @@ define([
 			</br></br>This is the hash for all the data : </br> ' + '<a style="color:red">' + hash + '</a></br>You can use it to double check that all the data are the same on different devices</br></br> Also, you can use tools/import data to transfer the data using the following QRCodes:</br></br>'
 			var title = 'Data Link';
 			var data = this.model.exportData();
-
 			this.dialogQrCodes(data, tex, title);
+			return {link: link, hash: hash, data: data}
 		},
 
 		updateUnspent: function() {
@@ -684,14 +701,14 @@ define([
 		},
 
 		txButton: function() {
-			$('div[name=multisig-builder').css('display','none');
+			$('div[name=multisig-builder').hide('easeOutSine');
 			$('span[name=chevron-tx-button]').toggleClass('glyphicon-triangle-left').toggleClass('glyphicon-triangle-bottom')
 			if ($('div[name=multiTransaction]',this.el).children().length == 0) {
 				$('.form1').prop('disabled', 'disabled');
 				this.renderTransaction('easeOutSine');
 
 			} else {
-				$('div[name=multisig-builder').css('display','');
+				$('div[name=multisig-builder').show('easeOutSine');
 				$('div[name=multiTransaction]',this.el).hide('easeOutSine');
 				setTimeout(function() {
 					$('div[name=multiTransaction]',this.el).children().remove();
@@ -706,13 +723,13 @@ define([
 			var template = _.template("\
 					<div id='' name='pubkey-field'>\
 					<label class='row col-xs-12'>From:</label>\
-						<div class='col-xs-12 row' style='padding-right: 40px; margin-right: 0px;'>\
+						<div class='col-xs-12 row' style='padding-right: 40px; margin-right: 0px'>\
 							<div class='col-xs-7' style='padding-left:0px;padding-right:5px'>\
-								<input disabled type='text' value=<%=from%> class='form-horizontal form-control input-group' placeholder='Bitcoin address or Onename'>\
+								<input disabled style='color: blue;' type='text' value=<%=from%> class='form-horizontal form-control input-group' placeholder='Bitcoin address or Onename'>\
 								</input>\
 							</div>\
 							<div class='col-xs-5 col-md-2' style='margin-bottom:10px;padding-left:0px;padding-right:5px'>\
-								<input disabled type='text' class='form-horizontal form-control input-group'  placeholder='Amount in BTC' value='<%=balance/100000000%> BTC'>\
+								<input disabled style='color: blue;' type='text' class='form-horizontal form-control input-group'  placeholder='Amount in BTC' value='<%=balance/100000000%> BTC'>\
 								</input>\
 							</div>\
 						</div>\
@@ -753,7 +770,7 @@ define([
 				</br>\
 				</div>\
 				<div class='col-xs-12' style=''>\
-				<button class='btn btn-default <%=(unspents.length > 0) && (_.filter(recipients, function(recipient) { return !(recipient.address && recipient.amount) }).length == 0) ? '' : 'disabled'%>' style='font-size:20px;float:right;' name='btn-signature'>\
+				<button class='btn btn-default <%=(unspents.length > 0) && (_.filter(recipients, function(recipient) { return !(recipient.address && recipient.amount) }).length == 0) ? '' : 'disabled'%>' style='font-size:20px;float:right;margin-bottom:30px' name='btn-signature'>\
 					<span name='chevron-signature' class='glyphicon glyphicon-triangle-left'></span>\
 					 Signatures\
 				</button>\
@@ -904,19 +921,24 @@ define([
 		},
 
 		renderAddress: function() {
-			$('select[name=number-of-signatures]').val(this.model.numberOfSignatures)
-			this.model.findAddress();
+			$('select[name=number-of-signatures]').val(this.model.numberOfSignatures);
+			console.log(this.model.multisig )
+			if (this.model.multisig == {}) {
+
+				return
+			};
 			if (this.model.multisig.address) {
 				console.log($('[name=multisig-address]'))
 				$('[name=multisig-address]').val(this.model.multisig.address);
 				//'Balance: ' + (this.model.balance ? this.model.balance/100000000 + ' BTC' : 'No Data')
-				$('[name=multisig-balance]').val(this.model.balance ? this.model.balance/100000000 + ' BTC' : 'No Data');
+				$('[name=multisig-balance]').val(this.model.balance ? this.model.balance/100000000 + ' BTC' : '0 BTC');
 			} else {
 				//$('[name=multisig-adderess]').html('');
 			}
 		},
 
 		renderPubkey: function(field) {
+			master = this;
 			if (this.model.pubkeys[field].pubkey && this.model.pubkeys[field].pubkey!='unknown') {
 				$('span[id=' + field + '][name=pubkey-field-title]', this.el).css('background-color','green').css('color','white')
 			} else {
@@ -924,10 +946,9 @@ define([
 			}
 			$('input[id=' + field + '][name=entry-field]', this.el).val(this.model.pubkeys[field].address)
 			this.model.findAddress();
-			this.renderSelect();
-			this.updateUnspent();
-			this.renderAddress();
-
+			master.renderSelect();
+			master.updateUnspent();
+			master.renderAddress();
 		},
 
 		renderSelect: function() {
@@ -972,10 +993,14 @@ define([
 		},
 
 		lookup: function(ev, field, inputValue) {
+			this.model.multisig = {}
+			this.model.pubkeys[field] = {}
+			$('[name=multisig-address]').val('');
+			$('[name=multisig-balance]').val('');
 			var master = this;
 			var field = ev ? parseInt(ev.currentTarget.id) : field; 
 			var inputValue = ev ? ev.currentTarget.value : inputValue;
-			var savedPubkey = master.model.getPubKeys()[field]
+			var savedPubkey = this.model.pubkeys[field]
 
 			//The input is an address
 
@@ -988,10 +1013,18 @@ define([
 				}
 				master.model.resolvePubKey(inputValue,field).done(function(){
 					if(!savedPubkey.pubkey) {
+						//window.alert('Impossible to find the public key for this address. You should enter the public key, or use an address that has already spent.')
+						$('div[name=alert-pubkey][id=' + field + ']').html('<h5 style="margin-top:0px;margin-bottom:5px;color:red">Impossible to find the public key for this address. You should enter the public key, or use an address that has already spent.</h5>')
+						master.model.multisig = {}
 						savedPubkey.pubkey = 'unknown';
 						savedPubkey.onename = inputValue;
-						master.renderPubkey(field);
+												
+						return
+
 						master.showData(false, field);
+						$('[name=multisig-address]').val('');
+						$('[name=multisig-balance]').val('');
+						master.renderPubkey(field);
 					}
 					master.renderPubkey(field);
 				})

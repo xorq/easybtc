@@ -121,6 +121,30 @@ define([
 			return result;
 		},
 
+		weakScrypto: function(passphrase, salt) {
+
+			try {
+				var scrypt = scrypt_module_factory( Math.pow(2,22) );
+				window.alert('switched to a weaker key stretching (n = 2^10 instead of 2^18, think of adding 2 more random words for equivalent entropy)');
+				var n = Math.pow(2, 10)
+			} catch(err) {
+				window.alert('Not enough memory for any decent key stretching')
+				return 'error'
+			}
+		
+			var result = scrypt.to_hex(
+				scrypt.crypto_scrypt(
+					scrypt.encode_utf8(passphrase + String.fromCharCode(0x01)),
+					scrypt.encode_utf8(salt + String.fromCharCode(0x01)),
+					n, 
+					8, 
+					1, 
+					32
+				)
+			);
+			return result
+		},
+
 		scrypto: function(passphrase, salt) {
 			try {
 				var scrypt = scrypt_module_factory( Math.pow(2,29) );
@@ -133,6 +157,7 @@ define([
 					var n = Math.pow(2, 10)
 				} catch(err) {
 					window.alert('Not enough memory for any decent key stretching')
+					return 'error'
 				}
 			}
 			var result = scrypt.to_hex(
@@ -168,8 +193,26 @@ define([
 		},
 
 		warp: function(passphrase, salt) {
-			var hex1 = cryptoscrypt.scrypto(passphrase,salt);
-			var hex2 = cryptoscrypt.pbkdf2o(passphrase,salt);
+			var hex1 = this.scrypto(passphrase,salt);
+			var hex2 = this.pbkdf2o(passphrase,salt);
+			if (hex1 == 'error') {
+				return 'error'
+			}
+			var out = '';
+			for (var i = 0; i < 64; ++i) {
+				out += (parseInt(hex1[i], 16) ^ parseInt(hex2[i], 16)).toString(16);
+			}
+			key = new Bitcoin.ECKey(BigInteger.fromHex(out), false);
+			cpub = 	new Bitcoin.ECPubKey(key.pub.Q,false);
+			return [key.toWIF(),key.pub.getAddress().toString(),cpub.toHex()];
+		},
+
+		weakWarp: function(passphrase, salt) {
+			var hex1 = this.weakScrypto(passphrase,salt);
+			var hex2 = this.pbkdf2o(passphrase,salt);
+			if (hex1 == 'error') {
+				return 'error'
+			}
 			var out = '';
 			for (var i = 0; i < 64; ++i) {
 				out += (parseInt(hex1[i], 16) ^ parseInt(hex2[i], 16)).toString(16);
@@ -209,11 +252,10 @@ define([
 		},
 
 		getPkey: function(passphrase, salt) {
+			var warp = this.warp(passphrase, salt);
+			if (warp == 'error') {return error}
 			if (cryptoscrypt.validPkey(passphrase) == false) {
-				pkey = Bitcoin.ECKey.fromWIF(cryptoscrypt.warp(
-					passphrase,
-					salt
-				)[0])
+				pkey = Bitcoin.ECKey.fromWIF(warp[0])
 			} else {
 				pkey = Bitcoin.ECKey.fromWIF(passphrase)
 			};

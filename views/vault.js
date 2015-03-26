@@ -10,8 +10,6 @@ define([
 	var checking = false;
 	var VaultView = Backbone.View.extend({
 		el: $('#contents'), 
-		//el: $('#contents'),
-	  //template: _.template($('#vaultViewTemplate').text()),
 		template: _.template($('#vaultViewTemplate').text()), 
 		events: {
 			'click .btn-random' : 'random',
@@ -36,13 +34,13 @@ define([
 				cryptoscrypt.internetCheck(iCheckDefer)
 				.done(function(data){
 					if((data.result=='yes') & goodpage()) {
-						$('div[id=contents]').css('border','5px solid red');
-						$('div[id=vault-warning]').html('<h3 style=color:red>You are using an online computer, as a result this vault is insecure. If you are unsure of what you are doing, check the guidance</h3>')
+						$('div[id=contents]').css('border','3px solid red');
+						$('div[id=vault-warning]').html('<h5 style=color:red>You are using an online computer, as a result this vault is insecure. If you are unsure of what you are doing, check the guidance</h5>')
 					}
 				})
 				.fail(function(){
-					$('div[id=contents]').css('border','5px solid green');
-					$('div[id=vault-warning]').html('<h3 style=color:darkgreen>You seem to be offline. For achieving maximum security, check the guidance.</h3>')
+					$('div[id=contents]').css('border','3px solid green');
+					$('div[id=vault-warning]').html('<h5 style=color:darkgreen>You seem to be offline. For achieving maximum security, check the guidance.</h5>')
 					});
 			}
 			if (checking == false) {
@@ -55,7 +53,7 @@ define([
 
 			$('Title').html('EasyBTC Vault Creator');
 			this.$el.html(this.template());
-			$('div[id=contents]').css('border','5px solid black');
+			$('div[id=contents]').css('border','2px solid black');
 			checking = false;
 
 		}, 

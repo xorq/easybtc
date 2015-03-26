@@ -27,8 +27,8 @@
 			<!--<h4>Cold Storage for everyone</h4>
 			<h6>Easy-BTC uses <a href=http://www.bitcoinjs.org/>BitcoinJS</a>, <a href='http://onename.io/'>Onename.io</a> and is compatible with <a href='https://keybase.io/warp'>Warp Wallet</a></h6>-->
 			<ul class='nav nav-pills' role='tablist'>
-				<li name='vault'><a href='#vault'>Vault</a></li>
-				<li name='create' class='active'><a href='#'>Send</a></li>
+				<li name='vault'><a href='#vault'>Warp Vault</a></li>
+				<li name='create' class='active'><a href='#'>Spend</a></li>
 				<li name='coinvoice'><a href='#coinvoice'>Receive</a></li>
 				<li name='multisig'><a href='#multisig'>Multisig</a></li>
 				<li name='chain'><a href='#chain  '>Chain (Advanced)</a></li>
@@ -49,7 +49,7 @@
 					<!--<li name='btn-export-tx'><a href='#Multisig'>Export Transaction</a></li>-->
 				</ul>
 				<a href='http://www.easy-btc.org/index.html#multisig' class='btn btn-danger' style='float:right' name='reset'>Reset</a>
-				<button class='btn btn-primary' style='float:right; margin-right:30px' name='data-link'>Data Transfer</button>
+				<button class='btn btn-primary' style='float:right; margin-right:30px' name='data-link'>Get page link and Data</button>
 				<a href="http://tinyurl.com/kfcw6v2" class='btn btn-warning' style='float:right; margin-right:30px' name='data-link'>Test out with fake data</a>
 				<div class='input-group' style='float:right;margin-right:20px'>
 					<button class='btn btn-default disabled' name='load-data'>Load Data</button>
@@ -88,10 +88,10 @@
 									</div>
 									<div style='position:absolute;right:-420px;bottom:1px'>
 										<legend style='font-size:15px;margin-bottom:0px'>Multisig Address</legend>
-										<input style='min-width: 300px' name='multisig-address' class='form-control' disabled placeholder='Multisig address'></input>
+										<input style='min-width: 300px; color:blue' name='multisig-address' class='form-control' disabled placeholder='Multisig address'></input>
 										<div style='position:absolute;right;bottom:-60px'>
 										<legend style='font-size:15px;margin-bottom:0px'>Balance</legend>
-										<input style='min-width: 300px' name='multisig-balance' class='form-control' disabled placeholder='Balance'></input>
+										<input style='color: blue; min-width: 300px' name='multisig-balance' class='form-control' disabled placeholder='Balance'></input>
 									</div>
 									</div>
 									<div style='position:absolute;right:-100px;bottom:1px'>
@@ -111,6 +111,7 @@
 									</div>
 								<%}%>
 							</div>
+							<div class='col-xs-6' name='alert-pubkey' id='<%=index%>'></div>
 						</div>
 					<%})%>
 				</div>
@@ -308,10 +309,9 @@
 						<li class='divider'></li><li class='divider'></li>
 						<li name='btn-import'><a href='#'>Import QR code(s) for a transaction</a></li>
 						<li name='btn-export'><a href='#'>Export QR code(s) for this transaction</a></li>
-						<li class='divider'></li><li class='divider'></li>
+						<li class='divider'></li>
 						<li name='guidance-tails'><a href='#'>Guidance for using Tails</a></li>
 						<li name='guidance-dedicated'><a href='#'>Guidance for using a dedicated offline computer</a></li>
-						<li class='divider'></li>
 						<li name='guidance-off'><a href='#'>Turn guidance off</a></li>
 					</ul>
 				</div>
@@ -451,7 +451,7 @@
 						</div>
 					<% }); %> 
 
-						<div class='row col-xs-12 form-group'>
+						<div class='row col-xs-12 form-group' style='display:<%=advanced ? 'block' : 'none'%>'>
 							<label for='fee'>Fee</label>
 							<div class='input-group col-xs-12' style='width:250px'>
 								<input type='text' class='form-control' <%=(feeMode == 'auto') ? 'readonly':''%> name='fee' id='fee' value='<%= getFee/100000000 %>'></input>

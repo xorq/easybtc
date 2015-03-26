@@ -47,12 +47,8 @@ define([
     },
 
     showAdvanced: function() {
-      /*
-      $('.advanced').each(function(field, index) {
-        currentState = $('.advanced')[0].css('display');
-        field.css('display', currentState == 'none' ? 'block' : 'none')
-      }*/
-      this.model.advanced = this.model.advanced && true;
+
+      this.model.advanced = !this.model.advanced;
       console.log(this.model.advanced);
       this.render();
     },
@@ -90,13 +86,13 @@ define([
         cryptoscrypt.internetCheck(iCheckDefer)
         .done(function(data) {
           if((data.result=='yes') & goodpage()) {
-          $('div[id=contents]').css('border','5px solid red');
+          $('div[id=contents]').css('border','3px solid red');
           $('div[id=warning]').html('<h5 style=color:red>You are online! You should never expose your secret passphrase while online, if you are unsure of what you are doing, please check the guidance</h5>')
         }
         })
         .fail(function() {
           if(goodpage()) {
-            $('div[id=contents]').css('border','5px solid green');
+            $('div[id=contents]').css('border','3px solid green');
             $('div[id=warning]').html('<h5 style=color:darkgreen>You seem to be offline, good !</h5>')
           }
         });
@@ -374,6 +370,9 @@ define([
 
     init: function(purpose) {
       this.model.purpose = purpose;
+      if (purpose == 'chain') {
+        this.model.advanced = true;
+      }
       var data = this.getParameterByName('data');
       if (data) {
         this.model.importData(data);
@@ -395,7 +394,7 @@ define([
       this.$el.html(this.template(this.model.data()));
       this.renderQrCode();
       this.updateTotal();
-      $('div[id=contents]').css('border','5px solid black');
+      $('div[id=contents]').css('border','2px solid black');
     }, 
 
 

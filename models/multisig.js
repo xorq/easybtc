@@ -12,14 +12,11 @@
 		this.multisig = {};
 		this.balance = 0;
 		this.unspents = [];
-		//this.multisigs = [];
 		this.signatures = {};
 		this.numberOfSignatures = 1;
-		//this.redeemscript = '';
 		this.fee = 10000;
 		this.recipients = [ { address : '', amount : '', checkedAddress : '', thumb : '' } ];
 		this.tx = {};
-		
 		this.rawTx = '';
 
 		this.deleteSignatures = function() {
@@ -29,9 +26,9 @@
 		this.buildMultisig = function() {
 			//try {
 				master = this;
-				//var tx = Bitcoin.Transaction.fromHex(this.getTx());
-				var dummyPkey = '5KYZdUEo39z3FPrtuX2QbbwGnNP5zTd7yyr2SC1j299sBCnWjss'
-
+				var dummyPkey = Bitcoin.ECKey.fromWIF('5KYZdUEo39z3FPrtuX2QbbwGnNP5zTd7yyr2SC1j299sBCnWjss');
+				
+				// Unsigned tx
 				var tx = cryptoscrypt.buildTx(
 				  _.pluck(this.unspents, 'transaction_hash'),
 				  _.pluck(this.unspents, 'transaction_index'),
@@ -41,28 +38,19 @@
 				  _.pluck(this.recipients, 'amount'),
 				  this.fee
 				);
-				// Display unsigned transaction
-
 				console.log(tx[0].toHex());
-				this.rawTx = tx[0].toHex()
-				// Calculate the private key;
-				//var signAddress = cryptoscrypt.pkeyToAddress(pkey);
-				var tx = Bitcoin.Transaction.fromHex(tx[0].toHex());
-				// Create the transaction
-				//var tx = Bitcoin.Transaction.fromHex(tx[0].toHex());
-				var txb = Bitcoin.TransactionBuilder.fromTransaction(tx);
-				// Perform the signatures
+				this.rawTx = tx[0].toHex();
 
-				var dummyPkey = Bitcoin.ECKey.fromWIF(dummyPkey);
+				var tx = Bitcoin.Transaction.fromHex(this.rawTx);
+				var txb = Bitcoin.TransactionBuilder.fromTransaction(tx);
+
+				// Perform the signatures
 				_.each(txb.tx.ins, function(data, index) {
 					txb.sign(index, dummyPkey, Bitcoin.Script.fromHex(master.multisig.redeemscript));
 				});
-				console.log(txb);
 
+				//Mapping every signatures that are present into the transaction object
 				_.each(master.signatures, function(signatures, signaire) {
-					console.log(signaire);
-					console.log(master.numberOfSignatures);
-
 					if (signaire < master.numberOfSignatures) {
 						console.log('entered the field')
 						var sigArray = _.map(master.signatures[signaire], function(data) {
@@ -72,12 +60,10 @@
 						_.each(txb.tx.ins, function(input, index) {
 							if (sigArray[index]) {
 								txb.signatures[index].signatures[signaire] = (sigArray[index]);
-								//signatures.push(sig);
 							}
 						});
 					}
 				})
-				//txb.signatures = master.tx.signatures;
 				var result = txb.build().toHex();
 				console.log(result);
 				return result;
@@ -113,18 +99,18 @@
 
 		this.sign = function(pkey, field) {
 			var master = this;
+
 			var signingAddress = cryptoscrypt.WIFToAddress(pkey);
-			if (signingAddress != this.pubkeys[field].address){
+			/*if (signingAddress != this.pubkeys[field].address){
 				window.alert('You entered the password/private key for the address "' + signingAddress + '", therefore this signature is invalid')
-			}
+			}*/
 			this.findAddress();
 			if (this.getTotal()>this.balance) {
 				window.alert('There is not enough money available');
-				return 'There is not enough money available';
+				return;
 			}
 
 			// Build the unsigned transaction;
-
 			var tx = cryptoscrypt.buildTx(
 			  _.pluck(this.unspents, 'transaction_hash'),
 			  _.pluck(this.unspents, 'transaction_index'),
@@ -134,51 +120,21 @@
 			  _.pluck(this.recipients, 'amount'),
 			  this.fee
 			);
-			// Display unsigned transaction
-
-			console.log(tx[0].toHex());
 			this.rawTx = tx[0].toHex()
-			// Calculate the private key;
-			//var signAddress = cryptoscrypt.pkeyToAddress(pkey);
 			var tx = Bitcoin.Transaction.fromHex(tx[0].toHex());
-			// Create the transaction
-			//var tx = Bitcoin.Transaction.fromHex(tx[0].toHex());
 			var txb = Bitcoin.TransactionBuilder.fromTransaction(tx);
+
 			// Perform the signatures
 			this.multisig;
 			pkey = Bitcoin.ECKey.fromWIF(pkey);
-			//master.signatures = {};
 			master.signatures[field] = [];
 			_.each(txb.tx.ins, function(data, index) {
 				txb.sign(index, pkey, Bitcoin.Script.fromHex(master.multisig.redeemscript));
+				// Save the signatures in the signatures object
 				master.signatures[field][index] = txb.signatures[index].signatures[0].toDER().toString('hex');
-				// [{ address signing : array of signatures }]
 			});
-			//Create the QR code
-			console.log(txb)
-				//this.qrcode = tx[0].toHex().toString();
-			//var sig1 = (txb.signatures[0].signatures[0]);
-			// Show the signature transaction Hex
-			//this.pubkeys[field].signature = sig1.toDER().toString('hex')
-
-			//console.log(JSON.stringify(sig1));
 		},
 
-		this.getPubKeys = function() {
-			return this.pubkeys
-		},
-
-/*
-		this.importation = function(jsonCode) {
-			console.log('importing');
-			this.recipients = jsonCode.recipients;
-			this.unspents = jsonCode.unspents;
-			this.balance = cryptoscrypt.sumArray(_.pluck(jsonCode.unspent, 'value'));
-			this.loadRedeemscript(jsonCode.redeemscript);
-			this.signatures = jsonCode.signatures;
-			console.log(this.multisig);
-		},
-*/
 		this.importTx = function(data) {
 			var master = this;
 			console.log(data);
@@ -515,7 +471,7 @@
 			if (_.contains(_.pluck(this.pubkeys,'pubkey'),'unknown')) {
 				this.multisig['address'] = '';
 				console.log('some addresses are unknown');
-				return ;
+				return false;
 			}
 			if (pubkeys.length>1) {
 
@@ -527,7 +483,6 @@
 				this.unspents = [];
 				this.balance = undefined;
 			}
-
 		},
 
 		this.findAddresses = function(pubkeys) {
