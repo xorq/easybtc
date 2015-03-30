@@ -19,6 +19,26 @@
 		this.tx = {};
 		this.rawTx = '';
 
+		this.testOut = function() {
+			this.resetAll();
+			this.importData('{"recipients":[{"address":"1Xorq87adKn12bheqPFuwLZgZi5TyUTBq","amount":89133535}],"unspents":[{"transaction_hash":"fa2021dff72c0b08ad8f4056c9ea3515c2e034c32359f6e09b169033c7a6a6cb","value":990000,"transaction_index":0},{"transaction_hash":"e2f038a256d71b6c32cb3bb5b4f63d2b91aeae7dc9ca50ac3e45d66606847cb1","value":1990000,"transaction_index":1},{"transaction_hash":"acb4637d140ca8e94dee6f2d67cc3f810f68a49de282c2bb5712d3f90f4395d2","value":10719535,"transaction_index":1},{"transaction_hash":"267c037f8c1c9113e91768a74c6f44e37043a962a2c8e6250214d2b96caa4520","value":74144000,"transaction_index":23},{"transaction_hash":"0a11b09a638b79e2753c8844dd00b79a315f4d3d3ded47c5fe697fef682e39c4","value":1300000,"transaction_index":0}],"redeemscript":"524104dedf0b95880044bec816c25404ce7dbac265bb79f73a0880e1d1237200f28c57c5d13975f3a045be6f6c6db984ecfbe20c62d12203de7f483fd482e2435e2f224104567be2411c1ef05b252c0cf3b37f74e5a88b4088192007d4599dbbf35974ebb1026b54152c430ceebc12d6c3f3ac2b04055b3639a6f7b7d63f3011dc3879fc0e41040e7f8b80cc21fb9b30aacfe96fad7d2c2211a17a554d1050262d759e09b8012f7d60bdbc3cb5d99825a9eaaa7fed65f48de7dec157c5d97cd75315c11992546b53ae","signatures":{"0":["304402203edbb257eb70a65363cbcc4e3342c5032cf5eeb00bdc1f0e3b256830fe5727850220679000b82524a306ea47e7ba5d797bd16dc8ecb5e974871317086c0344ff9101","3045022100d93c7b92a99444fb06231afb3edee82f5db6756ad4ae3c0bdaa8a83c0402eb62022018b45e451b698b9661b7ba7071e541cd0f9642c64114ec6e60da6c3001cb6998","3045022100a844d3104558085ee762a8e84def9f30e10dc443b138343df7b3b852a29d9bf7022033d7551d6755963a1a04635f5e376700d4d31b2fe6e01f56be287c0006134806","304502210092dce55a1a4b6bcf65def1eff61d4fa0646ef63dc9f091114690b701f790f39e022068d3dfcc1d1d170ba17a38f9b9d2bfba7efa5740e761aa88285cd6005f099e20","304402203a9696547d9a38c674f40032a189960a0c22db28dd6b35dc9b4596263ba2bb80022069657baae8e1d3f599c20ca8ac57aed330e1c62e5cbdac0d74c03da3cd5ecae6"]}}')
+		},
+
+		this.resetAll = function() {
+			this.test = '';
+			this.pubkeys = [{ address : '', pubkey : '', thumb : '', onename : '', avatar : '' } , { address : '', pubkey : '', thumb : '', onename : '', avatar : '' }];
+			this.expectedField = undefined;
+			this.multisig = {};
+			this.balance = 0;
+			this.unspents = [];
+			this.signatures = {};
+			this.numberOfSignatures = 1;
+			this.fee = 10000;
+			this.recipients = [ { address : '', amount : '', checkedAddress : '', thumb : '' } ];
+			this.tx = {};
+			this.rawTx = '';
+		},
+
 		this.deleteSignatures = function() {
 			this.signatures = {}
 		},

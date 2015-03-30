@@ -20,7 +20,6 @@ define([
 			'click button[name=btn-delete-pubkey]' : 'deletePubkey',
 			//'click span[name=pubkey-field-title]' : 'showData',
 			'change select[name=number-of-signatures]' : 'updateNumberOfSignatures',
-			'keyup select[name=number-of-signatures]' : 'updateNumberOfSignatures',
 			'click button[name=btn-scan]' : 'scanAddress',
 			'click button[name=btn-scan-recipient]' : 'scanRecipient',
 			'click [name=btn-import-redeemscript]' : 'importMultisig',
@@ -51,6 +50,18 @@ define([
 			'click button[name=save-data]' : 'saveData',
 			'click button[name=load-data]' : 'loadData',
 			'keyup input[name=tinyurl]' : 'loadTiny',
+			'click button[name=reset]' : 'reset',
+			'click button[name=test]' : 'test',
+		},
+
+		test: function() {
+			this.model.testOut();
+			this.render();
+		},
+
+		reset: function() {
+			this.model.resetAll();
+			this.render();
 		},
 
 		loadTiny: function() {
@@ -258,23 +269,25 @@ define([
 		},
 
 		makeSignature: function(ev){
-
 			var field = ev.currentTarget.id;
 			var passphrase = $('input[name=passphrase-field][id=' + field + ']').val();
 			var salt = $('input[name=salt-field][id=' + field + ']').val();
 			if (!cryptoscrypt.validPkey(passphrase)) {
-				passphrase = (cryptoscrypt.warp(passphrase,salt)[0]);
-				this.model.sign(passphrase, field);
+				pkey = (cryptoscrypt.warp(passphrase,salt)[0]);
+				
+				this.model.sign(pkey, field);
 				var strongSigningAddress = this.model.signingAddress;
-				if (strongSigningAddress != this.model.pubkeys[field].address){
-					var weakPassphrase = (cryptoscrypt.weakWarp(weakPassphrase,salt)[0]);
-					this.model.sign(passphrase, field);
+				
+				if (strongSigningAddress != this.model.pubkeys[field].address) {
+					var weakPkey = (cryptoscrypt.weakWarp(passphrase,salt)[0]);
+					console.log(weakPkey);
+					this.model.sign(weakPkey, field);
 					if (this.model.signingAddress != this.model.pubkeys[field].address){
-						window.alert('You entered the password/private key for the address "' + strongSigningAddress + '", therefore this signature is invalid, however the application will continue for your testing purposes')
+						window.alert('You entered the password/private key that is found not to be the one for "' + this.model.pubkeys[field].address + '", therefore this signature is invalid, however the application will continue for your testing purposes')
 					}
 				}
 			}
-
+			
 			$('[name=signature-hex][id=' + field + ']').val(this.model.signatures[field])
 			this.renderSignature(null);
 			
@@ -636,10 +649,10 @@ define([
 					$('button[name=btn-transaction]').addClass('disabled')
 				}
 			}).fail(function() {
+				master.renderAddress();
 				console.log(master.unspents);
 				master.model.unspents = [];
 				master.model.balance = 0;
-				master.renderAddress();
 				if (master.model.unspents && master.model.unspents.length > 0) {
 					$('button[name=btn-transaction]').removeClass('disabled')
 				} else {
@@ -650,7 +663,7 @@ define([
 
 		putAll: function(ev) {
 			var changed = this.model.putAll(ev.currentTarget.id);
-			$('input[name=amount-field]')[0].value = this.model.recipients[ev.currentTarget.id].amount / 100000000;
+			$('input[name=amount-field]')[ev.currentTarget.id].value = this.model.recipients[ev.currentTarget.id].amount / 100000000;
 			//this.renderTransaction('reload');
 			//$('div[name=multiTransaction]').removeClass('hidden');
 		},
@@ -701,7 +714,7 @@ define([
 		},
 
 		txButton: function() {
-			$('div[name=multisig-builder').hide('easeOutSine');
+			$('div[name=multisig-builder]').hide('easeOutSine');
 			$('span[name=chevron-tx-button]').toggleClass('glyphicon-triangle-left').toggleClass('glyphicon-triangle-bottom')
 			if ($('div[name=multiTransaction]',this.el).children().length == 0) {
 				$('.form1').prop('disabled', 'disabled');
@@ -997,6 +1010,8 @@ define([
 			this.model.pubkeys[field] = {}
 			$('[name=multisig-address]').val('');
 			$('[name=multisig-balance]').val('');
+			$('div[name=alert-pubkey][id=' + field + ']').html('')
+			$('span[name=pubkey-field-title][id=' + field + ']').css('color','rgb(0, 0, 0)').css('background-color','rgb(238, 238, 238)');
 			var master = this;
 			var field = ev ? parseInt(ev.currentTarget.id) : field; 
 			var inputValue = ev ? ev.currentTarget.value : inputValue;

@@ -35,7 +35,7 @@ define([
 				.done(function(data){
 					if((data.result=='yes') & goodpage()) {
 						$('div[id=contents]').css('border','3px solid red');
-						$('div[id=vault-warning]').html('<h5 style=color:red>You are using an online computer, as a result this vault is insecure. If you are unsure of what you are doing, check the guidance</h5>')
+						$('div[id=vault-warning]').html('<h5 style=color:red>You are using an online computer, as a result this vault is insecure. You should either use an offline computer, or <a href="tails.boum.org">Tails</a> with internet turned off before entering the passphrase, (in which case you should not go back online before rebooting your computer).</h5>')
 					}
 				})
 				.fail(function(){

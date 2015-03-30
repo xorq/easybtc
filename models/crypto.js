@@ -124,8 +124,7 @@ define([
 		weakScrypto: function(passphrase, salt) {
 
 			try {
-				var scrypt = scrypt_module_factory( Math.pow(2,22) );
-				window.alert('switched to a weaker key stretching (n = 2^10 instead of 2^18, think of adding 2 more random words for equivalent entropy)');
+				var scrypt = scrypt_module_factory( Math.pow(2,23) );
 				var n = Math.pow(2, 10)
 			} catch(err) {
 				window.alert('Not enough memory for any decent key stretching')
@@ -152,7 +151,7 @@ define([
 			} catch(err) {
 				window.alert('Not enough memory for warp wallet key stretching')
 				try {
-					var scrypt = scrypt_module_factory( Math.pow(2,22) );
+					var scrypt = scrypt_module_factory( Math.pow(2,23) );
 					window.alert('switched to a weaker key stretching (n = 2^10 instead of 2^18, think of adding 2 more random words for equivalent entropy)');
 					var n = Math.pow(2, 10)
 				} catch(err) {
@@ -208,6 +207,8 @@ define([
 		},
 
 		weakWarp: function(passphrase, salt) {
+			console.log(passphrase)
+			console.log(salt)
 			var hex1 = this.weakScrypto(passphrase,salt);
 			var hex2 = this.pbkdf2o(passphrase,salt);
 			if (hex1 == 'error') {
@@ -219,6 +220,7 @@ define([
 			}
 			key = new Bitcoin.ECKey(BigInteger.fromHex(out), false);
 			cpub = 	new Bitcoin.ECPubKey(key.pub.Q,false);
+			console.log(key.pub.getAddress().toString());
 			return [key.toWIF(),key.pub.getAddress().toString(),cpub.toHex()];
 		},
 

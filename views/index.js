@@ -3,7 +3,7 @@ define([
   'underscore',
   'jquery',
   'qrcode',
-], function(Backbone, _, $, html5_qrcode){
+], function(Backbone, _, $, html5_qrcode) {
   var QRSIZE = 300;
   var qrShown = 0;
   var checking = false;
@@ -55,8 +55,11 @@ define([
 
     loadNext: function() {
       if (this.model.hash) {
-        var link = window.location.pathname + '?data=' + this.model.nextData() + '#index';
-        window.location.href = link
+        var from = this.model.from;
+        this.model.thumbFrom = this.model.recipients[0].thumb;
+        this.model.importData(this.model.nextData());
+        this.model.recipients[0].address = from;
+        this.render();
       } else {
         window.alert('the transaction needs to be signed first');
       }
@@ -74,7 +77,6 @@ define([
        return ($('Title').html() == ('EasyBTC Send Bitcoin')) 
      }
       iCheck = function() {
-
         if (!this.goodpage()) {
           return
         }
@@ -127,8 +129,8 @@ define([
     export: function() {
       var link = window.location.pathname + '?data=' + this.model.exportData() + '#index';
       var hash = sjcl.codec.base64.fromBits(sjcl.hash.sha256.hash(JSON.stringify(this.model.exportData()))).toString().slice(0,20);
-      var tex = 'This <a style="text-align:center" href=' + link + '>link</a> opens this page with all your data, including signatures.</a>\
-      </br></br>This is the hash for all the data : </br> ' + '<a style="color:red">' + hash + '</a></br>You can use it to double check that all the data are the same on different devices</br></br> Also, you can use tools/import data to transfer the data using the following QRCodes:</br></br>'
+      var tex = 'This <a style="text-align:center" href=' + link + '>link</a> opens this page with all your data.</a>\
+      </br></br>This is the hash for all the data : </br> ' + '<a style="color:red">' + hash + '</a></br>You can use it to double check that all the data are the same on different devices</br></br> Use tools/import data to transfer the data using the following QRCodes:</br></br>'
       var title = 'Data Link';
       var data = this.model.exportData();
       this.dialogQrCodes(data, tex, title);
