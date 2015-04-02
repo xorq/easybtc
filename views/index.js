@@ -370,8 +370,6 @@ define([
       var passphrase = $('input[name=passphrase]', master.$el).val();
       var salt = $('input[name=salt]', master.$el).val();
       var from = $('input[name=from]', master.$el).val();
-      from = '1LSr51mKJhDQBTZffwFs6rmh4z4hZNpmm4';
-      console.log('here');
       _.each(cryptoscrypt.brainwallets(passphrase),function(pass, index) {
         console.log(pass.pub.getAddress().toString())
         if (pass.pub.getAddress().toString() == from) {
@@ -411,8 +409,6 @@ define([
     },
 
     init: function(purpose) {
-
-
       this.model.purpose = purpose;
       if (purpose == 'chain') {
         this.model.advanced = true;
