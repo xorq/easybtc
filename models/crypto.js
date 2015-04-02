@@ -8,9 +8,9 @@ define([
 	
 	return window.cryptoscrypt = cryptoscrypt = {
 
-		brainwallets:function() {
-			var hash = sjcl.codec.hex.fromBits(sjcl.hash.sha256.hash('caca'));
-			return [new Bitcoin.ECKey(BigInteger.fromHex(hash), false), new Bitcoin.ECKey(BigInteger.fromHex(hash), false)];
+		brainwallets:function(passphrase) {
+			var hash = sjcl.codec.hex.fromBits(sjcl.hash.sha256.hash(passphrase));
+			return [new Bitcoin.ECKey(BigInteger.fromHex(hash), true), new Bitcoin.ECKey(BigInteger.fromHex(hash), false)];
   		},
 
 		getHashFromTx:function(tx) {
@@ -144,7 +144,6 @@ define([
 					32
 				)
 			);
-			scrypt = '';
 			return result
 		},
 
@@ -173,7 +172,6 @@ define([
 					32
 				)
 			);
-			scrypt = '';
 			return result
 		},
 

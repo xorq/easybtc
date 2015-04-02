@@ -33,8 +33,8 @@
 			});
 			var data = {
 				recipients : recipientsExport,
-				from: this.from,
-				balance: this.balance,
+				from: master.from,
+				unspents: master.unspents,
 			};
 			data = JSON.stringify(data);
 			return data
@@ -161,7 +161,8 @@
 							i: i,
 							t: numChunks,
 							d: data.substr(i * chunkLength, chunkLength),
-							c: fullCheck
+							c: fullCheck,
+							p: sjcl.hash.sha256.hash(data.substr(i * chunkLength, chunkLength))[0]
 						}
 					)
 				)
@@ -194,6 +195,7 @@
 			try {
 				var qrData = JSON.parse(data);
 				console.log('parse OK');
+
 			} catch (e) {
 				console.log("Couldn't parse JSON");
 				return;
@@ -204,6 +206,13 @@
 			}
 			if (this.lastQrCode && this.lastQrCode.c != qrData.c) {
 				console.log("Checksum doesn't match previous QR code, ignoring this code");
+				return;
+			}
+			console.log('caca')
+			console.log(sjcl.hash.sha256.hash(qrData.d)[0])
+			console.log(qrData.p)
+			if (qrData.p != sjcl.hash.sha256.hash(qrData.d)[0]) {
+				console.log("invalid checksum for this qrcode");
 				return;
 			}
 
@@ -226,8 +235,11 @@
 
 			this.recipients = jsonCode.recipients;
 			this.from = jsonCode.from;
-			this.unspents = jsonCode.unspent;
-			this.balance = jsonCode.balance;
+			this.unspents = jsonCode.unspents;
+			this.balance = cryptoscrypt.sumArray(_.pluck(this.unspents, 'value'));
+			console.log(this.balance);
+			console.log(this.unspents);
+			console.log(_.pluck(this.unspents, 'value'))
 			return true;
 		}
 

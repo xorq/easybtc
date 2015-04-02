@@ -54,7 +54,9 @@ define([
         var dataArray = data.split('/');
         $('input[name=tinyurl]').val(dataArray[dataArray.length - 1])
       }
-      mink = this.model.exportLinkDataForTinyUrl() + '#multisig'
+      console.log(this.model.exportLinkDataForTinyUrl())
+      /*
+      mink = this.model.exportLinkDataForTinyUrl() + '#'
       var link = 'http://easy-btc.org/index.html?data=' + mink ;
       try { 
         cryptoscrypt.getTinyURL(link, success);
@@ -62,7 +64,7 @@ define([
         window.alert('There was an error, probably too much data for tinyURL');
       }
 
-      this.loadTiny();
+      this.loadTiny();*/
     },
 
     loadTiny: function() {
@@ -160,7 +162,7 @@ define([
       var tex = 'This <a style="text-align:center" href=' + link + '>link</a> opens this page with all your data.</a>\
       </br></br>This is the hash for all the data : </br> ' + '<a style="color:red">' + hash + '</a></br>You can use it to double check that all the data are the same on different devices</br></br> Use tools/import data to transfer the data using the following QRCodes:</br></br>'
       var title = 'Data Link';
-      var data = this.model.exportData();
+      var data = this.model.export();
       this.dialogQrCodes(data, tex, title);
     },
 
