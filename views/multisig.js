@@ -65,7 +65,6 @@ define([
 		},
 
 		loadTiny: function() {
-			console.log($('input[name=tinyurl]').val())
 			if ($('input[name=tinyurl]').val() == "" ) {
 				$('button[name=load-data]').addClass('disabled');
 			} else {
@@ -79,7 +78,6 @@ define([
 
 		saveData: function() {
 			var success = function(data) {
-				console.log(data);
 				var dataArray = data.split('/');
 				$('input[name=tinyurl]').val(dataArray[dataArray.length - 1])
 			}
@@ -280,7 +278,6 @@ define([
 				
 				if (strongSigningAddress != this.model.pubkeys[field].address) {
 					var weakPkey = (cryptoscrypt.weakWarp(passphrase,salt)[0]);
-					console.log(weakPkey);
 					this.model.sign(weakPkey, field);
 					if (this.model.signingAddress != this.model.pubkeys[field].address){
 						window.alert('You entered the password/private key that is found not to be the one for "' + this.model.pubkeys[field].address + '", therefore this signature is invalid, however the application will continue for your testing purposes')
@@ -650,7 +647,6 @@ define([
 				}
 			}).fail(function() {
 				master.renderAddress();
-				console.log(master.unspents);
 				master.model.unspents = [];
 				master.model.balance = 0;
 				if (master.model.unspents && master.model.unspents.length > 0) {
@@ -721,7 +717,7 @@ define([
 				this.renderTransaction('easeOutSine');
 
 			} else {
-				$('div[name=multisig-builder').show('easeOutSine');
+				$('div[name=multisig-builder]').show('easeOutSine');
 				$('div[name=multiTransaction]',this.el).hide('easeOutSine');
 				setTimeout(function() {
 					$('div[name=multiTransaction]',this.el).children().remove();
@@ -934,14 +930,12 @@ define([
 		},
 
 		renderAddress: function() {
+			this.model.findAddress();
 			$('select[name=number-of-signatures]').val(this.model.numberOfSignatures);
-			console.log(this.model.multisig )
 			if (this.model.multisig == {}) {
-
 				return
 			};
 			if (this.model.multisig.address) {
-				console.log($('[name=multisig-address]'))
 				$('[name=multisig-address]').val(this.model.multisig.address);
 				//'Balance: ' + (this.model.balance ? this.model.balance/100000000 + ' BTC' : 'No Data')
 				$('[name=multisig-balance]').val(this.model.balance ? this.model.balance/100000000 + ' BTC' : '0 BTC');
@@ -958,7 +952,7 @@ define([
 				$('span[id=' + field + '][name=pubkey-field-title]', this.el).css('background-color','#EEE').css('color','black')
 			}
 			$('input[id=' + field + '][name=entry-field]', this.el).val(this.model.pubkeys[field].address)
-			this.model.findAddress();
+			//this.model.findAddress();
 			master.renderSelect();
 			master.updateUnspent();
 			master.renderAddress();

@@ -49,8 +49,8 @@
 					<!--<li name='btn-export-tx'><a href='#Multisig'>Export Transaction</a></li>-->
 				</ul>
 				<button class='btn btn-danger' style='float:right' name='reset'>Reset</button>
-				<button class='btn btn-primary' style='float:right; margin-right:30px' name='data-link'>Get page link and Data</button>
-				<button class='btn btn-warning' style='float:right; margin-right:30px' name='test'>Test out with fake data</button>
+				<button class='btn btn-primary' style='float:right; margin-right:30px' name='data-link'>Data</button>
+				<button class='btn btn-warning' style='float:right; margin-right:30px' name='test'>Test with fake data</button>
 				<div class='input-group' style='float:right;margin-right:20px'>
 					<button class='btn btn-default disabled' name='load-data'>Load Data</button>
 					<button class='btn btn-default' name='save-data'>Save Data</button>
@@ -306,7 +306,7 @@
 					<button type='button' data-toggle='dropdown' class='btn btn-success dropdown-toggle'>Tools <span class='caret'></span></button>
 					<ul class='dropdown-menu'>
 						<li name='btn-show-advanced'><a href='#'>Display advanced options</a></li>
-						<li class='divider'></li><li class='divider'></li>
+						<li class='divider'></li>
 						<li name='btn-import'><a href='#'>Import QR code(s) for a transaction</a></li>
 						<li name='btn-export'><a href='#'>Export QR code(s) for this transaction</a></li>
 						<li class='divider'></li>
@@ -315,24 +315,28 @@
 						<li name='guidance-off'><a href='#'>Turn guidance off</a></li>
 					</ul>
 				</div>
-					<div class='' name='btn-export' style='float:right'>
-						<button type='button' class='btn btn-warning' name='btn-export' style=''>Export Data</button>
-					</div>
-					<div class='col-xs-10' name='exportQrcode' style='display:none'>
-						<h5 class='col-xs-9' name='titleQrcode' style='text-align:center'></h5>
-					</div>
-
-					<div class='col-xs-12' name='exportQrcode' style='display:none'>
-						<div class='col-xs-2' name='previous'>
-							<button type='button' class='btn btn-qrcode glyphicon glyphicon-arrow-left' name='previousQr' style='font-size:45px'></button>
-						</div>
-						<div class='col-xs-6 qrcodeExport' id='qrcodeExport' name='qrcodeExport' style='width:350px'>
-						</div>
-						<div class='col-xs-2' name='next' style='height:300px; vertical-align:middle'>
-							<button type='button' class='btn btn-qrcode glyphicon glyphicon-arrow-right' name='nextQr' style='font-size:45px'></button>
-						</div>
-					</div>
+				<div class='' name='btn-export' style='float:right'>
+					<button type='button' class='btn btn-warning' name='btn-export' style=''>Export Data</button>
 				</div>
+
+
+
+
+
+
+				<div class='input-group' style='float:right;margin-right:20px'>
+					<button class='btn btn-default disabled' name='load-data'>Load Data</button>
+					<button class='btn btn-default' name='save-data'>Save Data</button>
+					<label style='margin-left:10px'>tinyurl:&nbsp&nbsp</label>
+					<input class='' style='width:100px' name='tinyurl'></input>
+				</div>
+
+
+
+
+
+
+	
 				<div class='col-xs-12 importQr' style='display: <%= showImportQR || 'none' %>'>
 					<p>Hold a QR Code in front of your webcam.</p>
 					<div class='qr-status'></div>

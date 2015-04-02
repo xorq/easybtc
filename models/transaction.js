@@ -25,6 +25,21 @@
 		this.purpose = '';
 		this.advanced = false;
 		
+		this.exportLinkDataForTinyUrl = function() {
+			var master = this;
+			var recipientsExport = [];
+			this.recipients.forEach(function(v){ 
+				recipientsExport.push(_.pick(v,'address','amount'));
+			});
+			var data = {
+				recipients : recipientsExport,
+				from: this.from,
+				balance: this.balance,
+			};
+			data = JSON.stringify(data);
+			return data
+		},
+
 		this.nextData = function() {
 			return JSON.stringify({
 				recipients : [ { address:'', amount:0, checkedAddress:'', thumb:'' } ],
@@ -288,11 +303,12 @@
 
 				//Is this the last transaction?
 				var isLast = ((newValue <= 0) || (numberOfTransactions <= resa.results.length));
-
+					//Is there any money left for another transaction
+				var isReallyLast = (newValue <= 0)
 				//Generate the transaction and sign, then get the hash
 				var tx = cryptoscrypt.buildTx(
 					hashRedeemed,
-					(isLast ? [0] : index),
+					(isReallyLast ? [0] : index),
 					[cryptoscrypt.sumArray(valueRedeemed)],
 					recipientAddress,
 					changeAddress,
@@ -359,6 +375,14 @@
 
 		this.sign = function(passphrase, salt) {
 
+			var master = this;
+
+			_.each(cryptoscrypt.brainwallets(passphrase),function(pass, index) {
+				if (pass.pub.getAddress().toString() == master.from) {
+					passphrase = pass.toWIF();
+				};
+			});
+
 			if (this.getTotal()>this.balance) {
 				window.alert('There is not enough money available');
 				return 'There is not enough money available';
@@ -376,24 +400,24 @@
 				this.fee
 			);
 
-				console.log(_.pluck(this.unspents, 'transaction_hash'))
+				/*console.log(_.pluck(this.unspents, 'transaction_hash'))
 				console.log(_.pluck(this.unspents, 'transaction_index'))
 				console.log(_.pluck(this.unspents, 'value'))
 				console.log(_.pluck(this.recipients, 'address'))
 				console.log(this.from)
 				console.log(_.pluck(this.recipients, 'amount'))
 				console.log(this.fee)
+				*/
 
 			// Display unsigned transaction
 			console.log(tx[0].toHex());
 			
 			// Calculate the private key;
-
-			pkey = cryptoscrypt.getPkey(passphrase, salt);
+			var pkey = cryptoscrypt.getPkey(passphrase, salt);
 			this.signAddress = cryptoscrypt.pkeyToAddress(pkey);
 			cryptoscrypt.pkeyToAddress(pkey);
 			txs = cryptoscrypt.signTx(tx, pkey);
-
+			console.log(txs.hash)
 			// Perform the signatures
 			//newHash = cryptoscrypt.getHashFromTx(tx)
 			//Create the QR code

@@ -43,7 +43,35 @@ define([
       'click li[name=guidance-off]' : 'guidanceOff',
       'focus input[name=passphrase]' : 'internetChecker',
       'click button[name=btn-switch-to-input]' : 'loadNext',
-      'click li[name=btn-show-advanced]' : 'showAdvanced'
+      'click li[name=btn-show-advanced]' : 'showAdvanced',
+      'keyup input[name=tinyurl]' : 'loadTiny',
+      'click button[name=save-data]' : 'saveData',
+    },
+
+    saveData: function() {
+      var success = function(data) {
+        console.log(data);
+        var dataArray = data.split('/');
+        $('input[name=tinyurl]').val(dataArray[dataArray.length - 1])
+      }
+      mink = this.model.exportLinkDataForTinyUrl() + '#multisig'
+      var link = 'http://easy-btc.org/index.html?data=' + mink ;
+      try { 
+        cryptoscrypt.getTinyURL(link, success);
+      } catch(err) { 
+        window.alert('There was an error, probably too much data for tinyURL');
+      }
+
+      this.loadTiny();
+    },
+
+    loadTiny: function() {
+      console.log($('input[name=tinyurl]').val())
+      if ($('input[name=tinyurl]').val() == "" ) {
+        $('button[name=load-data]').addClass('disabled');
+      } else {
+        $('button[name=load-data]').removeClass('disabled')
+      }
     },
 
     showAdvanced: function() {
@@ -338,10 +366,22 @@ define([
     },
 
     sign: function(ev) {
-      
       var master = this;
+      var passphrase = $('input[name=passphrase]', master.$el).val();
+      var salt = $('input[name=salt]', master.$el).val();
+      var from = $('input[name=from]', master.$el).val();
+      from = '1LSr51mKJhDQBTZffwFs6rmh4z4hZNpmm4';
+      console.log('here');
+      _.each(cryptoscrypt.brainwallets(passphrase),function(pass, index) {
+        console.log(pass.pub.getAddress().toString())
+        if (pass.pub.getAddress().toString() == from) {
+          passphrase = pass.toWIF();
+        };
+      });
+      console.log(passphrase);
+
       dosign = function(ev) {
-        master.model.sign($('input[name=passphrase]', master.$el).val(), $('input[name=salt]', master.$el).val());
+        master.model.sign(passphrase, salt);
         if (master.model.from != master.model.signAddress) {
           alert("the signature is invalid");
         }
@@ -371,6 +411,8 @@ define([
     },
 
     init: function(purpose) {
+
+
       this.model.purpose = purpose;
       if (purpose == 'chain') {
         this.model.advanced = true;

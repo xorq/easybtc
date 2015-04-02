@@ -494,7 +494,6 @@
 				return false;
 			}
 			if (pubkeys.length>1) {
-
 				this.multisig = cryptoscrypt.getMultisigAddress(pubkeys, parseInt(this.numberOfSignatures))
 			} else {
 				this.multisig = '';
