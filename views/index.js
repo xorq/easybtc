@@ -44,18 +44,25 @@ define([
       'focus input[name=passphrase]' : 'internetChecker',
       'click button[name=btn-switch-to-input]' : 'loadNext',
       'click li[name=btn-show-advanced]' : 'showAdvanced',
-      'keyup input[name=tinyurl]' : 'loadTiny',
-      'click button[name=save-data]' : 'saveData',
+      'keyup input[name=tinyurl]' : 'loadTinyButton',
+      'click button[name=load-data]' : 'loadTiny',
+      'click button[name=save-data]' : 'save-data'
+    },
+
+    loadTiny: function() {
+
     },
 
     saveData: function() {
+      console.log('hop');
       var success = function(data) {
         console.log(data);
         var dataArray = data.split('/');
         $('input[name=tinyurl]').val(dataArray[dataArray.length - 1])
       }
+
       console.log(this.model.exportLinkDataForTinyUrl())
-      /*
+      
       mink = this.model.exportLinkDataForTinyUrl() + '#'
       var link = 'http://easy-btc.org/index.html?data=' + mink ;
       try { 
@@ -64,10 +71,10 @@ define([
         window.alert('There was an error, probably too much data for tinyURL');
       }
 
-      this.loadTiny();*/
+      //this.loadTiny();
     },
 
-    loadTiny: function() {
+    loadTinyButton: function() {
       console.log($('input[name=tinyurl]').val())
       if ($('input[name=tinyurl]').val() == "" ) {
         $('button[name=load-data]').addClass('disabled');
@@ -268,7 +275,7 @@ define([
       $('div[class=visible-print]').append('<h3 style=text-align:center>' + title + '</h3></br>');
       $('div[class=visible-print]').append('<h4 style=text-align:left>' + text + '</h4></br>');
       dataArray.forEach(function(chunk, index) {
-        $('div[id=qrcode-display-window]').append('<div id=qrcode-number-' + index + '> ' + (comments && comments[index] ? '<h5>' + comments[index] + '</h5>' : '') + '<button name=btn-qrcode-number-' + index + ' class=btn-primary>QRCode # ' + (1 + index) + '</button></div>')
+        $('div[id=qrcode-display-window]').append('<div style=margin-bottom:20px id=qrcode-number-' + index + '> ' + (comments && comments[index] ? '<h5>' + comments[index] + '</h5>' : '') + '<button name=btn-qrcode-number-' + index + ' class=btn-primary>QRCode # ' + (1 + index) + '</button></div>')
         $('div[class=visible-print]').append('\
           <div class=col-xs-6 style="page-break-inside: avoid">\
             <legend>QRcode #' + (1 + index) + '</legend>\
@@ -287,6 +294,7 @@ define([
             correctLevel : QRCode.CorrectLevel.L
           });
         qrcodeData.makeCode(chunk);
+        $('canvas','div[id=qrcode-number-' + index + ']').css('border','20px solid').css('border-color','white');
 
         var aqrcodeData = new QRCode('aqrcode-number-' + index, { 
             width: 200, 
@@ -423,6 +431,7 @@ define([
     },
 
     render: function() {
+      
       $('Title').html('EasyBTC Send Bitcoin');
       this.model.checking = false;
       if (typeof(localMediaStream) != 'undefined' && localMediaStream) {
@@ -437,6 +446,7 @@ define([
       this.renderQrCode();
       this.updateTotal();
       $('div[id=contents]').css('border','2px solid black');
+      
     }, 
 
 

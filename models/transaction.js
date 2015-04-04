@@ -31,11 +31,18 @@
 			this.recipients.forEach(function(v){ 
 				recipientsExport.push(_.pick(v,'address','amount'));
 			});
+
+			unspentExport = [];
+			this.unspents.forEach(function(v){ 
+				unspentExport.push(_.pick(v,'transaction_hash','value','transaction_index'));
+			});
+
 			var data = {
 				recipients : recipientsExport,
 				from: master.from,
-				unspents: master.unspents,
+				unspents: unspentExport,
 			};
+			
 			data = JSON.stringify(data);
 			return data
 		},
