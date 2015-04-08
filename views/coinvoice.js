@@ -128,6 +128,7 @@ define([
 				this.getBtcRate(this.currency).done(function(rate){
 					console.log(rate)
 					master.btcFiat = rate;
+					master.updateFiat();
 					master.updatePage();
 				})
 
