@@ -144,7 +144,8 @@ define([
 		//Called in updateRate and even input fiat (keydown)
 		updateFiat: function() {
 			this.fiat = $('input[id=fiat]').val();
-			this.amount = Math.floor(10000 * (this.fiat / (this.btcFiat)) / 10000);
+			this.amount = Math.floor(10000 * (this.fiat / (this.btcFiat))) / 10000;
+			console.log(this.amount);
 			this.updatePage();
 		},
 
