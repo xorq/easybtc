@@ -42,13 +42,14 @@ define([
 	var fiat = 0;
 	var amount = 0;
 	var symbol = '';
+	var btcFiat = 0;
 
 	var Coinvoice = Backbone.View.extend({
 		el: $('#contents'),
 		//templateFrom: _.template($('#indexViewFromTemplate').text())
 		template: _.template($('#coinvoiceTemplate').text()), 
 		events: {
-			'click select[id=currency]': 'updateRate', 
+			'change select[id=currency]': 'updateRate', 
 			'keyup input[id=fiat]': 'updateFiat',
 			'blur input[id=address]': 'updateInput',
 		}, 
@@ -57,6 +58,7 @@ define([
 
 		// Called at page initialization
 		render: function() {
+			//this.getBtcRate('THB').done(function(data){console.log(data)})
 			master = this;
 			// Get parameters
 			this.address = this.getParameterByName('address');
@@ -123,20 +125,26 @@ define([
 				master.updateFiat();
 			} else {
 				//Get Rates into btcUsd and rate, when it is done, update the page
-				this.getFiatRate("USD",this.currency).done(function(data) {
+				this.getBtcRate(this.currency).done(function(rate){
+					console.log(rate)
+					master.btcFiat = rate;
+					master.updatePage();
+				})
+
+				/*this.getFiatRate("USD",this.currency).done(function(data) {
 					master.rate = data.result;
 					master.getBtcRate().done(function(data) {
 						master.btcUsd = data.result;
 						master.updateFiat();
 					});
-				});
+				});*/
 			}
 		},
 
 		//Called in updateRate and even input fiat (keydown)
 		updateFiat: function() {
 			this.fiat = $('input[id=fiat]').val();
-			this.amount = Math.floor(10000 * (this.fiat / (this.rate * this.btcUsd))) / 10000;
+			this.amount = Math.floor(10000 * (this.fiat / (this.btcFiat)) / 10000);
 			this.updatePage();
 		},
 
@@ -161,7 +169,7 @@ define([
 
 		// Called in updatePage
 		updateLegend: function() {
-			var ratePerBTC = Math.floor(100 * this.rate * this.btcUsd ) / 100;
+			var ratePerBTC = Math.floor(100 * this.btcFiat ) / 100;
 			if (!ratePerBTC) {
 				return
 			};
@@ -220,15 +228,36 @@ define([
 		},
 
 		// Called in updateRate
- 		getBtcRate: function() {
-			var def = $.Deferred();
-			$.getJSON('http://api.coindesk.com/v1/bpi/currentprice.json')
+ 		getBtcRate: function(fiat) {
+ 			deff = $.Deferred();
+ 			var longURL = 'BTC_' + fiat + '&compact=y';
+ 			success = function(data) {
+ 				deff.resolve(data['BTC_' + fiat].val)
+ 			}
+			var ud = 'json'+(Math.random()*100).toString().replace(/./g,''),
+				// Define API URL:
+				API = 'http://www.freecurrencyconverterapi.com/api/v3/convert?q=';
+
+			window[ud]= function(o){ success && success(o); };
+			// Append new SCRIPT element to BODY with SRC of API:
+			document.getElementsByTagName('body')[0].appendChild((function(){
+				var s = document.createElement('script');
+				s.type = 'text/javascript';
+				s.src = API + (longURL) + '&callback=' + ud;
+				console.log(s.src)
+				return s;
+			})())
+			return deff
+
+ 			//cryptoscrypt.getJSONrequest('http://www.freecurrencyconverterapi.com/api/v3/convert?q=BTC_' + fiat + '&compact=y', callback)
+			/*var def = $.Deferred();
+			$.getJSON('http://www.freecurrencyconverterapi.com/api/v3/convert?q=BTC_' + fiat + '&compact=y&callback=callback')
 			.done(function(data) { 
 				def.resolve({
-					result:data.bpi.USD.rate
+					result:data['BTC_' + fiat].val//.bpi.USD.rate
 				});
 			});
-			return def.promise();
+			return def.promise();*/
 		},
 
 		// Called in render

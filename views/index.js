@@ -46,11 +46,58 @@ define([
       'click li[name=btn-show-advanced]' : 'showAdvanced',
       'keyup input[name=tinyurl]' : 'loadTinyButton',
       'click button[name=load-data]' : 'loadTiny',
-      'click button[name=save-data]' : 'save-data'
+      'click button[name=save-data]' : 'saveData'
     },
 
     loadTiny: function() {
+      var master = this;
+      var Endpoint = new function() {
+      //  var RESOLVER_URL = 'http://localhost/endpoint/resolver.php';
+        var RESOLVER_URL = 'http://almaer.com/endpoint/resolver.php';
+        var RESOLVER_CALLBACK = '__Endpoint_resolve';
+        
+        var count = 0;
+        
+        // touch my privates
+        var append = function(url) {
+          var appender = document.createElement('script');
+          appender.src = url;
+          appender.type = 'text/javascript';
+          document.getElementsByTagName('body')[0].appendChild(appender);
+        }
+        
+        // feeling public
+        return {
+          resolve: function(url, userCallback) {
+            var serverCallback = RESOLVER_CALLBACK + (count++);
+            var serverUrl = RESOLVER_URL 
+                          + '?url=' + url
+                          + '&callback=' + serverCallback;
 
+            // Global link to run the callback
+            window[serverCallback] = userCallback;
+
+            append(serverUrl); // Hit the server proxy via script append
+          },
+
+          isRedirecting: function(newurl, originalurl) {
+            return (newurl != '') && (newurl != originalurl);
+          }
+        };
+        
+      };
+      var def = $.Deferred();
+      Endpoint.resolve('http://www.tinyurl.com/' + $('input[name=tinyurl]').val(), function(url) {
+        def.resolve(url)
+      });
+      def.done(function(data){
+        var data = (data.split('data=')[1]).split('#')[0];
+        if (data) {
+          console.log(data)
+          master.model.importData(data);
+        }
+        master.render();
+      })
     },
 
     saveData: function() {
@@ -284,9 +331,6 @@ define([
           </div>\
           '
         )
-
-
-
 
         var qrcodeData = new QRCode('qrcode-number-' + index, { 
             width: 300, 
