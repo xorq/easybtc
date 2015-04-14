@@ -49,6 +49,68 @@ define([
       'click button[name=save-data]' : 'saveData'
     },
 
+    dataGetter: function(text, title, ifTrue, doThat) {
+      $('#dialog-data-getter').dialog('destroy');
+      $( '#dialogs' ).html('\
+        <div id="dialog-data-getter" title="' + title + '">'
+
+          + text +
+
+          '<div  style="width: 340px; height: 300px" id=video-display-window>\
+          </div>\
+          <div id="qr-status-tx"></div>\
+        </div>'
+      );
+      var opt = {
+        autoOpen: false,
+        modal: false,
+        width: 380,
+        height:420,
+        hide:'fade',
+        show:'fade'
+      };
+      $('#dialog-data-getter').dialog(opt);
+      $('#dialog-data-getter').css({
+        'border': '1px solid #b9cd6d',
+        'background':'#b9cd6d', 
+        'border': '1px solid #b9cd6d', 
+        'color': '#FFFFFF', 
+        'title': 'Details',
+        'font-weight' : 'bold'
+      });
+      $('#dialog-data-getter').dialog('open')
+      //video
+      $('div[id=video-display-window]').html5_qrcode(function(code){
+        if (ifTrue(code) == true) {
+          localMediaStream.stop();
+          localMediaStream.src = null;
+          localMediaStream.mozSrcObject = null;
+          localMediaStream = null;
+          setTimeout(function(){
+            $('#dialog-data-getter').dialog('destroy');
+            $('#dialog-data-getter').empty();
+          }, 4000);
+          $('#dialog-data-getter').append('<h4 style="position:absolute;top:100px;color:red;word-break:break-all">' + code + '</h4>');
+          doThat();      
+        }
+      },
+      function(error) {
+        console.log('error');
+      }, 
+      function(error) {
+        console.log('error');
+      });
+
+      $('[title=Close]').click(function(){
+        if (typeof(localMediaStream) != 'undefined' && localMediaStream) {
+          localMediaStream.stop();
+          localMediaStream.src = null;
+          localMediaStream.mozSrcObject = null;
+          localMediaStream = null;
+        }
+      })
+    },
+
     loadTiny: function() {
       var master = this;
       var Endpoint = new function() {
@@ -256,7 +318,31 @@ define([
 
 
     import: function(ev) {
+      var master = this;
+      this.model.newImport();
       this.model.expectedField = ev.currentTarget.name == 'btn-scan-from' ? 'from' : $(ev.currentTarget).parents('.addressTo').attr('dataId')
+      ifTrue = function(data) {
+        code = cryptoscrypt.findBtcAddress(data);
+        if (master.model.import(code, master.model.expectedField)) {
+            setTimeout($('div[id=qr-status-tx]').animate({ backgroundColor: 'red' }, 'slow'), 0)
+            setTimeout($('div[id=qr-status-tx]').animate({ backgroundColor: 'transparent' }, 'slow'), 5000)
+            $('div[id=qr-status-tx]').html("Got " + master.model.qrParts + ' out of ' + master.model.qrTotal + ' codes.')
+            return true;
+          } else {
+            setTimeout($('div[id=qr-status-tx]').animate({ backgroundColor: 'red' }, 'slow'), 0)
+            setTimeout($('div[id=qr-status-tx]').animate({ backgroundColor: 'transparent' }, 'slow'), 5000)
+            $('div[id=qr-status-tx]').html("Got " + master.model.qrParts + ' out of ' + master.model.qrTotal + ' codes.')
+            return false;
+          }
+      }
+
+      doThat = function() {
+        master.render();
+      }
+
+      this.dataGetter('Import an address', 'Import BTC Address', ifTrue, doThat)
+
+      /*
       this.model.showImportQR = !this.model.showImportQR;
       this.render();
       if (!this.model.showImportQR) {
@@ -282,7 +368,7 @@ define([
           console.log('error');
         }
       );
-
+    */
     },
 
 
@@ -475,7 +561,7 @@ define([
     },
 
     render: function() {
-      
+
       $('Title').html('EasyBTC Send Bitcoin');
       this.model.checking = false;
       if (typeof(localMediaStream) != 'undefined' && localMediaStream) {
@@ -490,7 +576,6 @@ define([
       this.renderQrCode();
       this.updateTotal();
       $('div[id=contents]').css('border','2px solid black');
-      
     }, 
 
 

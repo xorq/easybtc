@@ -90,68 +90,6 @@ define([
 			}
 
 			this.loadTiny();
-			/*
-			function lzw_encode(s) {
-				var dict = {};
-				var data = (s + "").split("");
-				var out = [];
-				var currChar;
-				var phrase = data[0];
-				var code = 256;
-				for (var i=1; i<data.length; i++) {
-					currChar=data[i];
-					if (dict[phrase + currChar] != null) {
-						phrase += currChar;
-					}
-					else {
-						out.push(phrase.length > 1 ? dict[phrase] : phrase.charCodeAt(0));
-						dict[phrase + currChar] = code;
-						code++;
-						phrase=currChar;
-					}
-				}
-				out.push(phrase.length > 1 ? dict[phrase] : phrase.charCodeAt(0));
-				for (var i=0; i<out.length; i++) {
-					out[i] = String.fromCharCode(out[i]);
-				}
-				return out.join("");
-			}
-
-			function lzw_decode(s) {
-				var dict = {};
-				var data = (s + "").split("");
-				var currChar = data[0];
-				var oldPhrase = currChar;
-				var out = [currChar];
-				var code = 256;
-				var phrase;
-				for (var i=1; i<data.length; i++) {
-					var currCode = data[i].charCodeAt(0);
-					if (currCode < 256) {
-						phrase = data[i];
-					}
-					else {
-					   phrase = dict[currCode] ? dict[currCode] : (oldPhrase + currChar);
-					}
-					out.push(phrase);
-					currChar = phrase.charAt(0);
-					dict[code] = oldPhrase + currChar;
-					code++;
-					oldPhrase = phrase;
-				}
-				return out.join("");
-			}
-
-			console.log(window.btoa(unescape(encodeURIComponent( lzw_encode(window.btoa(unescape(encodeURIComponent(mink))))))))
-			console.log( window.btoa(unescape(encodeURIComponent( lzw_encode(mink) ))))
-			console.log( decodeURIComponent(escape(window.atob( window.btoa(unescape(encodeURIComponent( lzw_encode(mink) ))) ))))
-			console.log( lzw_decode(decodeURIComponent(escape(window.atob( window.btoa(unescape(encodeURIComponent( lzw_encode(mink) ))) )))))
-			
-			cryptoscrypt.getTinyURL('http://easy-btc.org/index.html?data={%22recipients%22:[{%22address%22:%221Xorq87adKn12bheqPFuwLZgZi5TyUTBq%22,%22amount%22:89133535}],%22unspents%22:[{%22transaction_hash%22:%22fa2021dff72c0b08ad8f4056c9ea3515c2e034c32359f6e09b169033c7a6a6cb%22,%22value%22:990000,%22transaction_index%22:0},{%22transaction_hash%22:%22e2f038a256d71b6c32cb3bb5b4f63d2b91aeae7dc9ca50ac3e45d66606847cb1%22,%22value%22:1990000,%22transaction_index%22:1},{%22transaction_hash%22:%22acb4637d140ca8e94dee6f2d67cc3f810f68a49de282c2bb5712d3f90f4395d2%22,%22value%22:10719535,%22transaction_index%22:1},{%22transaction_hash%22:%22267c037f8c1c9113e91768a74c6f44e37043a962a2c8e6250214d2b96caa4520%22,%22value%22:74144000,%22transaction_index%22:23},{%22transaction_hash%22:%220a11b09a638b79e2753c8844dd00b79a315f4d3d3ded47c5fe697fef682e39c4%22,%22value%22:1300000,%22transaction_index%22:0}],%22redeemscript%22:%22524104dedf0b95880044bec816c25404ce7dbac265bb79f73a0880e1d1237200f28c57c5d13975f3a045be6f6c6db984ecfbe20c62d12203de7f483fd482e2435e2f224104567be2411c1ef05b252c0cf3b37f74e5a88b4088192007d4599dbbf35974ebb1026b54152c430ceebc12d6c3f3ac2b04055b3639a6f7b7d63f3011dc3879fc0e41040e7f8b80cc21fb9b30aacfe96fad7d2c2211a17a554d1050262d759e09b8012f7d60bdbc3cb5d99825a9eaaa7fed65f48de7dec157c5d97cd75315c11992546b53ae%22,%22signatures%22:{%220%22:[%22304402203edbb257eb70a65363cbcc4e3342c5032cf5eeb00bdc1f0e3b256830fe5727850220679000b82524a306ea47e7ba5d797bd16dc8ecb5e974871317086c0344ff9101%22,%223045022100d93c7b92a99444fb06231afb3edee82f5db6756ad4ae3c0bdaa8a83c0402eb62022018b45e451b698b9661b7ba7071e541cd0f9642c64114ec6e60da6c3001cb6998%22,%223045022100a844d3104558085ee762a8e84def9f30e10dc443b138343df7b3b852a29d9bf7022033d7551d6755963a1a04635f5e376700d4d31b2fe6e01f56be287c0006134806%22,%22304502210092dce55a1a4b6bcf65def1eff61d4fa0646ef63dc9f091114690b701f790f39e022068d3dfcc1d1d170ba17a38f9b9d2bfba7efa5740e761aa88285cd6005f099e20%22,%22304402203a9696547d9a38c674f40032a189960a0c22db28dd6b35dc9b4596263ba2bb80022069657baae8e1d3f599c20ca8ac57aed330e1c62e5cbdac0d74c03da3cd5ecae6%22]}}#multisig', function(tinyurl){
-			 //Do something with tinyurl:
-				alert(tinyurl)
-			});*/
-			
 		},
 
 		scanAddress: function(ev) {
@@ -160,10 +98,14 @@ define([
 			var master = this;
 
 			callback = function(data) {
-				master.lookup(false, field, data);
-				$('input[name=entry-field][id=' + field + ']').val(data);
-				return true
-
+				var address = cryptoscrypt.findBtcAddress(data);
+				if (address) {
+					master.lookup(false, field, address);
+					$('input[name=entry-field][id=' + field + ']').val(data);
+					return true
+				} else {
+					return false
+				}
 			};
 			var callback2 = function() {
 				master.render()
@@ -180,8 +122,14 @@ define([
 			var master = this;
 
 			callback = function(data) {
-				field
+				var address = cryptoscrypt.findBtcAddress(data);
+				if (address) {
+					master.lookupRecipient(false, field, address)
 					return true
+				} else {
+					return false	
+				}
+				
 			};
 			
 			var callback2 = function() {
@@ -280,7 +228,7 @@ define([
 					var weakPkey = (cryptoscrypt.weakWarp(passphrase,salt)[0]);
 					this.model.sign(weakPkey, field);
 					if (this.model.signingAddress != this.model.pubkeys[field].address){
-						window.alert('You entered the password/private key that is found not to be the one for "' + this.model.pubkeys[field].address + '", therefore this signature is invalid, however the application will continue for your testing purposes')
+						window.alert('You entered the password/private key that is found to be not the one for "' + this.model.pubkeys[field].address + '", therefore this signature is invalid, however the application will continue for your testing purposes')
 					}
 				}
 			}
@@ -571,59 +519,82 @@ define([
 
 		},
 
-		dialogQrCodes: function(dataArray, text, title, QRDataSize) {
-			QRDataSize = QRDataSize ? QRDataSize : 850
-			if (typeof(dataArray) == 'string') {
-				dataArray = cryptoscrypt.stringToChunks(dataArray, 850);
-			}
-			$('#dialog-qrcodes').dialog('destroy');
-			//var link = window.location.pathname + '?data=' + this.model.exportData() + '#Multisig';
+	    dialogQrCodes: function(dataArray, text, title, QRDataSize, comments) {
+	      $('div[class=visible-print]').html('');
+	        //dataArray = ['zerzerzer','zfizuoizeuroizeru','jozeirjzoeiruzeroziu']
+	      QRDataSize = QRDataSize ? QRDataSize : 850
+	      if (typeof(dataArray) == 'string') {
+	        dataArray = cryptoscrypt.stringToChunks(dataArray, 850);
+	      }
+	      $('#dialog-qrcodes').dialog('destroy');
+	      //var link = window.location.pathname + '?data=' + this.model.exportData() + '#Multisig';
+	      $( '#dialogs' ).html('\
+	      <div id="dialog-qrcodes" title=' + title + '>'
 
-			$( '#dialogs' ).html('\
-				<div id="dialog-qrcodes" title=' + title + '>'
+	        + text +
 
-					+ text +
+	        '<div id="qrcode-display-window" media="print">\
+	        <button class="btn btn-danger" type="button" value="Print Div" onclick=print()> Print </button>\
+	        </div>\
+	      </div>');
+	      $('div[class=visible-print]').append('<h3 style=text-align:center>' + title + '</h3></br>');
+	      $('div[class=visible-print]').append('<h4 style=text-align:left>' + text + '</h4></br>');
+	      dataArray.forEach(function(chunk, index) {
+	        $('div[id=qrcode-display-window]').append('<div style=margin-bottom:20px id=qrcode-number-' + index + '> ' + (comments && comments[index] ? '<h5>' + comments[index] + '</h5>' : '') + '<button name=btn-qrcode-number-' + index + ' class=btn-primary>QRCode # ' + (1 + index) + '</button></div>')
+	        $('div[class=visible-print]').append('\
+	          <div class=col-xs-6 style="page-break-inside: avoid">\
+	            <legend>QRcode #' + (1 + index) + '</legend>\
+	            <div id=aqrcode-number-' + index + '></div>\
+	            ' + (comments && comments[index] ? '<h5>' + comments[index] + '</h5>' : '') +'\
+	          </div>\
+	          '
+	        )
 
-					'<div id=qrcode-display-window>\
-					</div>\
-				</div>');
-			dataArray.forEach(function(chunk, index) {
-				$('div[id=qrcode-display-window]').append('<div id=qrcode-number-' + index + '><button name=btn-qrcode-number-' + index + ' class=btn-primary>QRCode # ' + index + '</button></div>')
-				var qrcodeData = new QRCode('qrcode-number-' + index, { 
-						width: 300, 
-						height: 300, 
-						correctLevel : QRCode.CorrectLevel.L
-					});
+	        var qrcodeData = new QRCode('qrcode-number-' + index, { 
+	            width: 300, 
+	            height: 300, 
+	            correctLevel : QRCode.CorrectLevel.L
+	          });
+	        qrcodeData.makeCode(chunk);
+	        $('canvas','div[id=qrcode-number-' + index + ']').css('border','20px solid').css('border-color','white');
 
-				qrcodeData.makeCode(chunk);
-				$('button[name=btn-qrcode-number-' + index + ']').click(function() {
-					$('canvas', 'div[id=qrcode-number-' + index + ']').toggle('blind');
-				})
-				$('canvas', 'div[id=qrcode-number-' + index + ']').css('display','none');
-			});
+	        var aqrcodeData = new QRCode('aqrcode-number-' + index, { 
+	            width: 200, 
+	            height: 200, 
+	            correctLevel : QRCode.CorrectLevel.L
+	          });
+	       
+	        aqrcodeData.makeCode(chunk);
+	        
 
-			var opt = {
-				autoOpen: false,
-				modal: false,
-				width: 400,
-				height:500 + 10 * dataArray.length,
-				hide: { effect: "fade", duration: 400 },
-				show: { effect: "fade", duration: 400 }
-			};
+	        $('button[name=btn-qrcode-number-' + index + ']').click(function() {
+	          $('canvas', 'div[id=qrcode-number-' + index + ']').toggle('blind');
+	        })
+	        $('canvas', 'div[id=qrcode-number-' + index + ']').css('display','none');
+	      });
 
-			//$('#qrcode-display-window').append('<h2>Data</h2><h5 style=word-break:break-all>' + dataArray.join('</br></br>') + '</h5>');
-			$('#dialog-qrcodes').dialog(opt);
-			$('#dialog-qrcodes').css({
-				'border': '1px solid #ccec8c',
-				'background':'#ccec8c', 
-				'border': '2px solid #ccec8c',
-				'color': '#000000', 
-				'title': 'Details',
-				//'font-weight' : 'bold',
-				'hide': { effect: "fade", duration: 2000 }
-			});
-			$('#dialog-qrcodes').dialog('open')//.parent().effect('slide');
-		},
+	      var opt = {
+	        autoOpen: false,
+	        modal: false,
+	        width: 400,
+	        height:500 + 10 * dataArray.length,
+	        hide: { effect: "fade", duration: 400 },
+	        show: { effect: "fade", duration: 400 }
+	      };
+
+	      $('#qrcode-display-window').append('<h2>Data</h2><h5 style=word-break:break-all>' + dataArray.join('</br></br>') + '</h5>');
+	      $('#dialog-qrcodes').dialog(opt);
+	      $('#dialog-qrcodes').css({
+	        'border': '1px solid #ccec8c',
+	        'background':'#ccec8c', 
+	        'border': '2px solid #ccec8c', 
+	        'color': '#000000', 
+	        'title': 'Details',
+	        'hide': { effect: "fade", duration: 2000 }
+	      });
+	      $('#dialog-qrcodes').dialog('open')//.parent().effect('slide');
+	      $('[role=dialog]').addClass('hidden-print')
+	    },
 
 		getDataLink: function() {
 			var link = window.location.pathname + '?data=' + this.model.exportLinkData() + '#multisig';
@@ -881,7 +852,7 @@ define([
 					setTimeout(function(){
 						$('#dialog-data-getter').dialog('destroy');
 						$('#dialog-data-getter').empty();
-					}, 4000);
+					}, 2000);
 					$('#dialog-data-getter').append('<h4 style="position:absolute;top:100px;color:red;word-break:break-all">' + code + '</h4>');
 					callback2();			
 				}
@@ -1014,12 +985,15 @@ define([
 			//The input is an address
 
 			if (cryptoscrypt.validAddress(inputValue)) {
-				if (cryptoscrypt.pubkeyToAddress(this.model.pubkeys[field].pubkey) == this.model.pubkeys[field].address) {
-					return
-				}
-				if ((savedPubkey.address == inputValue) && (savedPubkey.pubkey)) {
+				// If the address has already been resolved and we know the public key then stop looking up
+				if (cryptoscrypt.pubkeyToAddress(this.model.pubkeys[field].pubkey) && ((cryptoscrypt.pubkeyToAddress(this.model.pubkeys[field].pubkey) == this.model.pubkeys[field].address))) {
 					master.renderPubkey(field);
-				}
+					return
+				};
+				// This is the same as above
+				/*if ((savedPubkey.address == inputValue) && (savedPubkey.pubkey)) {
+					master.renderPubkey(field);
+				};*/
 				master.model.resolvePubKey(inputValue,field).done(function(){
 					if(!savedPubkey.pubkey) {
 						//window.alert('Impossible to find the public key for this address. You should enter the public key, or use an address that has already spent.')

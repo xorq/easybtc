@@ -95,7 +95,7 @@
 									</div>
 									</div>
 									<div style='position:absolute;right:-100px;bottom:1px'>
-										<legend style='font-size:15px;margin-bottom:0px'>signatures</legend>
+										<legend style='font-size:15px;margin-bottom:0px'>Signatures</legend>
 										<select class='form-control form1' name='number-of-signatures' style='width:80px;'>
 											<% _.each(_.without(_.pluck(pubkeys,'pubkey'),'','unknown'), function(pubkey, index) {%>
 												<option value='<%=index + 1%>' <%=numberOfSignatures==index+1 ? 'selected' : ''%>><%=index+1%></option>
@@ -305,7 +305,7 @@
 				<div class='dropdown col-xs-2' name='tools button-group'>
 					<button type='button' data-toggle='dropdown' class='btn btn-success dropdown-toggle'>Tools <span class='caret'></span></button>
 					<ul class='dropdown-menu'>
-						<li name='btn-show-advanced'><a href='#'>Display advanced options</a></li>
+						<li name='btn-show-advanced'><a href='#'><%=advanced ? 'Hide' : 'Display'%> advanced options</a></li>
 						<li class='divider'></li>
 						<li name='btn-import'><a href='#'>Import QR code(s) for a transaction</a></li>
 						<li name='btn-export'><a href='#'>Export QR code(s) for this transaction</a></li>
