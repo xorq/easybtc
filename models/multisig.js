@@ -70,13 +70,12 @@
 				});
 				//Mapping every signatures that are present into the transaction object
 				_.each(master.signatures, function(signatures, signaire) {
-					
+					txb.signatures[signaire].signatures = []
 					if (signaire < master.numberOfSignatures) {
 						console.log('entered the field')
 						var sigArray = _.map(master.signatures[signaire], function(data) {
 							return new Bitcoin.ECSignature.fromDER(new BigInteger.fromHex(data).toBuffer());
 						});
-						
 						_.each(txb.tx.ins, function(input, index) {
 							if (sigArray[index]) {
 								txb.signatures[index].signatures[signaire] = (sigArray[index]);
