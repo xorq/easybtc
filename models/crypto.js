@@ -204,8 +204,8 @@ define([
 			for (var i = 0; i < 64; ++i) {
 				out += (parseInt(hex1[i], 16) ^ parseInt(hex2[i], 16)).toString(16);
 			}
-			key = new Bitcoin.ECKey(BigInteger.fromHex(out), false);
-			cpub = 	new Bitcoin.ECPubKey(key.pub.Q,false);
+			var key = new Bitcoin.ECKey(BigInteger.fromHex(out), false);
+			var cpub = 	new Bitcoin.ECPubKey(key.pub.Q,false);
 			return [key.toWIF(),key.pub.getAddress().toString(),cpub.toHex()];
 		},
 

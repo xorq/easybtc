@@ -18,7 +18,7 @@ define([
     events: {
       'click video' : 'import',
       'click button[name=btn-guidance]' : 'guidanceToggle',
-      'click button[name^=btn-scan]' : 'import',
+      'click button[name^=btn-scan]' : 'importAddress',
       'click [name=btn-export]' : 'export',
       'click li[name=btn-import]' : 'import',
       'click button[name=nextQr]' : 'nextQr',
@@ -90,7 +90,7 @@ define([
             $('#dialog-data-getter').dialog('destroy');
             $('#dialog-data-getter').empty();
           }, 4000);
-          $('#dialog-data-getter').append('<h4 style="position:absolute;top:100px;color:red;word-break:break-all">' + code + '</h4>');
+          $('div[id=qr-status-tx]').append('<h4 style="color:red;word-break:break-all">' + code + '</h4>');
           doThat();      
         }
       },
@@ -316,14 +316,29 @@ define([
       }
     },
 
-
-    import: function(ev) {
+    importAddress: function(ev) {
       var master = this;
-      this.model.newImport();
       this.model.expectedField = ev.currentTarget.name == 'btn-scan-from' ? 'from' : $(ev.currentTarget).parents('.addressTo').attr('dataId')
       ifTrue = function(data) {
         code = cryptoscrypt.findBtcAddress(data);
-        if (master.model.import(code, master.model.expectedField)) {
+        return master.model.import(code)
+      };
+
+      doThat = function() {
+        master.render();
+      };
+
+      this.dataGetter('Import an address', 'Import BTC Address', ifTrue, doThat)
+    },
+
+    import: function(ev) {
+      console.log(ev);
+      var master = this;
+      this.model.newImport();
+      
+      ifTrue = function(data) {
+        code = cryptoscrypt.findBtcAddress(data);
+        if (master.model.import(code)) {
             setTimeout($('div[id=qr-status-tx]').animate({ backgroundColor: 'red' }, 'slow'), 0)
             setTimeout($('div[id=qr-status-tx]').animate({ backgroundColor: 'transparent' }, 'slow'), 5000)
             $('div[id=qr-status-tx]').html("Got " + master.model.qrParts + ' out of ' + master.model.qrTotal + ' codes.')
@@ -340,7 +355,7 @@ define([
         master.render();
       }
 
-      this.dataGetter('Import an address', 'Import BTC Address', ifTrue, doThat)
+      this.dataGetter('Import a Full Transaction', 'Import Transaction', ifTrue, doThat)
 
       /*
       this.model.showImportQR = !this.model.showImportQR;

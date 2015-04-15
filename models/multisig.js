@@ -68,15 +68,15 @@
 				_.each(txb.tx.ins, function(data, index) {
 					txb.sign(index, dummyPkey, Bitcoin.Script.fromHex(master.multisig.redeemscript));
 				});
-
 				//Mapping every signatures that are present into the transaction object
 				_.each(master.signatures, function(signatures, signaire) {
+					
 					if (signaire < master.numberOfSignatures) {
 						console.log('entered the field')
 						var sigArray = _.map(master.signatures[signaire], function(data) {
 							return new Bitcoin.ECSignature.fromDER(new BigInteger.fromHex(data).toBuffer());
 						});
-						txb.signatures[signaire].signatures = []
+						
 						_.each(txb.tx.ins, function(input, index) {
 							if (sigArray[index]) {
 								txb.signatures[index].signatures[signaire] = (sigArray[index]);
@@ -345,10 +345,7 @@
 					master.unspents[index].value = output.value;
 
 				});
-
 				master.balance = cryptoscrypt.sumArray(_.pluck(master.unspents, 'value'))
-				console.log(master.unspents);
-
 			};
 			fail = function() {
 				console.log('couldnt find the unspent data')

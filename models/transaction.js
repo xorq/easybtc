@@ -184,9 +184,6 @@
 			this.qrParts = 0;
 			this.lastQrCode = false;
 		},
-		this.importAddress = function(data) {
-			
-		},
 
 		this.import = function(data) {
 			var master = this;
@@ -314,16 +311,18 @@
 				//stepValue = typeof(stepValue) == 'object' ? stepValue[0] : stepValue;
 				stepValue = Math.min((cryptoscrypt.sumArray(valueRedeemed) - fee), (stepValue) );
 				var newValue = cryptoscrypt.sumArray(valueRedeemed) - (fee + stepValue);
-				
+				var isReallyLast = (newValue <= 0)
+
 				//get the private keys:
+
 				var pkey = previousNextPkey ? previousNextPkey : cryptoscrypt.getPkey(passphrase, salt);
-				var nextPkey = cryptoscrypt.getPkey(passphrase + (1 + resa.results.length) , salt);
-				var changeAddress = cryptoscrypt.pkeyToAddress(nextPkey);
+				var nextPkey = isReallyLast ? '' : cryptoscrypt.getPkey(passphrase + (1 + resa.results.length) , salt);
+				var changeAddress = isReallyLast ? '' : cryptoscrypt.pkeyToAddress(nextPkey);
 
 				//Is this the last transaction?
 				var isLast = ((newValue <= 0) || (numberOfTransactions <= resa.results.length));
 					//Is there any money left for another transaction
-				var isReallyLast = (newValue <= 0)
+				
 				//Generate the transaction and sign, then get the hash
 				var tx = cryptoscrypt.buildTx(
 					hashRedeemed,

@@ -219,19 +219,20 @@ define([
 			var passphrase = $('input[name=passphrase-field][id=' + field + ']').val();
 			var salt = $('input[name=salt-field][id=' + field + ']').val();
 			if (!cryptoscrypt.validPkey(passphrase)) {
-				pkey = (cryptoscrypt.warp(passphrase,salt)[0]);
-				
-				this.model.sign(pkey, field);
-				var strongSigningAddress = this.model.signingAddress;
-				
+				var strongWrap = cryptoscrypt.warp(passphrase,salt);
+				var strongSigningAddress = strongWrap[1];
+				var strongPkey = strongWrap[0];
 				if (strongSigningAddress != this.model.pubkeys[field].address) {
 					var weakPkey = (cryptoscrypt.weakWarp(passphrase,salt)[0]);
 					this.model.sign(weakPkey, field);
 					if (this.model.signingAddress != this.model.pubkeys[field].address){
 						window.alert('You entered the password/private key that is found to be not the one for "' + this.model.pubkeys[field].address + '", therefore this signature is invalid, however the application will continue for your testing purposes')
 					}
+				} else {
+					this.model.sign(strongWrap[0], field);
 				}
-			}
+			} 
+			
 			
 			$('[name=signature-hex][id=' + field + ']').val(this.model.signatures[field])
 			this.renderSignature(null);
@@ -652,6 +653,7 @@ define([
 			//The input is an address
 			if (cryptoscrypt.validAddress(inputValue)) {
 				master.model.recipients[field].address = inputValue;
+				$('button[name=btn-signature]').removeClass('disabled')
 				return
 			}
 			//The input is anything else
@@ -660,6 +662,7 @@ define([
 					if (master.model.recipients[field].address) {
 						master.lookupRecipient(false, field, master.model.recipients[field].address);
 						ev.currentTarget.value = master.model.recipients[field].address
+						$('button[name=btn-signature]').removeClass('disabled')
 					}
 				})
 				return
