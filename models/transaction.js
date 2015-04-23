@@ -4,17 +4,18 @@
 	'backbone',
 	'models/bitcoin',
 	'models/bitcoinjs.min',
-], function($, _, Backbone,Bitcoin, Bitcoinjs) {
+	'models/biginteger',
+], function($, _, Backbone,Bitcoin, Bitcoinjs, BigInteger) {
 	function Transaction() {
 		this.guidance = false;
 		this.from = '';
 		this.checkedFrom = '';
 		this.thumbFrom = '';
 		this.recipients = [ { address:'', amount:0, checkedAddress:'', thumb:'' } ];
-		this.fee = 0;
+		this.fee = 10000;
 		this.passphrase = '';
 		this.salt = '';
-		this.balance = '';
+		this.balance = 0;
 		this.unspents = [ { } ];
 		this.qrcode = '';
 		this.feeMode = 'auto';
@@ -24,7 +25,176 @@
 		this.hash = '';
 		this.purpose = '';
 		this.advanced = false;
+		this.tfa = false;
+		this.redeemscript = '';
+		this.signatures = {computer:[],mobile:[]};
+		this.tinyLink = ''
 		
+
+		this.testtt = function() {
+			var data = '3045022100a7adb905d94fc7332b50f41c34ff9d199def9574064e205b69d83f0898ae4f8f02207b12eed47aad7d4f8b892b2cb53a40ea58196871f8975affe50b6c463db83f17'
+			console.log(
+				cryptoscrypt.validScript(data)
+			)
+		}
+
+		this.buildMultisig = function() {
+			var master = this;
+			console.log(master.signatures);
+			var dummyPkey = Bitcoin.ECKey.fromWIF('5KYZdUEo39z3FPrtuX2QbbwGnNP5zTd7yyr2SC1j299sBCnWjss');
+			
+			// Unsigned tx
+			var tx = cryptoscrypt.buildTx(
+				_.pluck(master.unspents, 'transaction_hash'),
+				_.pluck(master.unspents, 'transaction_index'),
+				_.pluck(master.unspents, 'value'),
+				_.pluck(master.recipients, 'address'),
+				cryptoscrypt.getMultisigAddressFromRedeemscript(master.redeemscript),
+				_.pluck(master.recipients, 'amount'),
+				master.fee
+			);
+			console.log(tx[0].toHex());
+			var rawTx = tx[0].toHex();
+
+			var tx = Bitcoinjs.Transaction.fromHex(rawTx);
+			var txb = Bitcoinjs.TransactionBuilder.fromTransaction(tx);
+			console.log(txb);
+			// Perform the signatures
+			_.each(txb.tx.ins, function(input, inputIndex) {
+				txb.sign(inputIndex, dummyPkey, Bitcoinjs.Script.fromHex(master.redeemscript));
+				var sigArray = _.map([master.signatures.computer, master.signatures.mobile], function(data) {
+						console.log(data[inputIndex])
+						console.log(new Bitcoinjs.ECSignature.fromDER(new BigInteger.fromHex(data[inputIndex]).toBuffer()))
+						return new Bitcoinjs.ECSignature.fromDER(new BigInteger.fromHex(data[inputIndex]).toBuffer());
+				});
+				console.log(sigArray);
+				//if (sigArray[inputIndex]) {
+					console.log('ok')
+					_.each(sigArray, function(sig, sigNumber) {
+						txb.signatures[inputIndex].signatures[sigNumber] = (sigArray[sigNumber]);
+					})
+					//txb.signatures[inputIndex].signatures[0] = (sigArray[0]);
+					//txb.signatures[inputIndex].signatures[1] = (sigArray[1]);
+				//}
+				console.log(txb);
+			});
+			console.log(txb);
+			//Mapping every signatures that are present into the transaction object
+			/*console.log	({0:master.signatures.computer, 1:master.signatures.mobile})
+			_.each({0:master.signatures.computer, 1:master.signatures.mobile}, function(signatures, signaire) {
+				console.log(signaire);
+				console.log(txb);
+				console.log(txb.signatures[signaire]);
+				txb.signatures[signaire].signatures = [];
+				console.log(txb.signatures[signaire]);
+				if (signaire < 1) {
+					console.log('entered the field')
+					console.log(signatures);
+					var sigArray = _.map(signatures, function(data) {
+						console.log(data)
+						console.log(new Bitcoinjs.ECSignature.fromDER(new BigInteger.fromHex(data).toBuffer()))
+						return new Bitcoinjs.ECSignature.fromDER(new BigInteger.fromHex(data).toBuffer());
+					});
+					console.log(sigArray);
+
+					_.each(txb.tx.ins, function(input, index) {
+						if (sigArray[index]) {
+							txb.signatures[index].signatures[signaire] = (sigArray[index]);
+						}
+					});
+					console.log(txb);
+				}
+			})*/
+			var result = txb.build().toHex();
+			console.log(result);
+		}
+
+		this.multiSign = function(device, passphrase, salt) {
+			var warp = cryptoscrypt.warp(passphrase, salt)
+			var pkey = warp[0]
+			//Sign
+			var signingAddress = warp[1];
+			if (this.getTotal()>this.balance) {
+				window.alert('There is not enough money available');
+				return;
+			}
+			console.log(this.unspents)
+			console.log(this.recipients)
+			console.log(cryptoscrypt.getMultisigAddressFromRedeemscript(this.redeemscript))
+			// Build the unsigned transaction;
+			var tx = cryptoscrypt.buildTx(
+				_.pluck(this.unspents, 'transaction_hash'),
+				_.pluck(this.unspents, 'transaction_index'),
+				_.pluck(this.unspents, 'value'),
+				_.pluck(this.recipients, 'address'),
+				cryptoscrypt.getMultisigAddressFromRedeemscript(this.redeemscript),
+				_.pluck(this.recipients, 'amount'),
+				this.fee
+			);
+			this.rawTx = tx[0].toHex()
+			var tx = Bitcoinjs.Transaction.fromHex(tx[0].toHex());
+			var txb = Bitcoinjs.TransactionBuilder.fromTransaction(tx);
+
+			// Perform the signatures
+			console.log(pkey)
+			pkey = Bitcoinjs.ECKey.fromWIF(pkey);
+			console.log(pkey);
+			//master.signatures.computer = [];
+			_.each(txb.tx.ins, function(data, index) {
+				txb.sign(index, pkey, Bitcoinjs.Script.fromHex(master.redeemscript));
+				// Save the signatures in the signatures object
+				if (device == 'computer') {
+					master.signatures.computer[index] = txb.signatures[index].signatures[0].toDER().toString('hex');
+				}
+				if (device == 'mobile') {
+					master.signatures.mobile[index] = txb.signatures[index].signatures[0].toDER().toString('hex');
+				}
+			});
+			console.log(this.signatures);
+			//get the signature from the qrcode
+
+			//do the multisig
+		}
+
+		this.signMultisig = function(pkey, field) {
+			var master = this;
+
+			var signingAddress = cryptoscrypt.WIFToAddress(pkey);
+			/*if (signingAddress != this.pubkeys[field].address){
+				window.alert('You entered the password/private key for the address "' + signingAddress + '", therefore this signature is invalid')
+			}*/
+			this.findAddress();
+			if (this.getTotal()>this.balance) {
+				window.alert('There is not enough money available');
+				return;
+			}
+
+			// Build the unsigned transaction;
+			var tx = cryptoscrypt.buildTx(
+			  _.pluck(this.unspents, 'transaction_hash'),
+			  _.pluck(this.unspents, 'transaction_index'),
+			  _.pluck(this.unspents, 'value'),
+			  _.pluck(this.recipients, 'address'),
+			  this.multisig.address,
+			  _.pluck(this.recipients, 'amount'),
+			  this.fee
+			);
+			this.rawTx = tx[0].toHex()
+			var tx = Bitcoin.Transaction.fromHex(tx[0].toHex());
+			var txb = Bitcoin.TransactionBuilder.fromTransaction(tx);
+
+			// Perform the signatures
+			this.multisig;
+			pkey = Bitcoin.ECKey.fromWIF(pkey);
+			result = [];
+			_.each(txb.tx.ins, function(data, index) {
+				txb.sign(index, pkey, Bitcoin.Script.fromHex(master.multisig.redeemscript));
+				// Save the signatures in the signatures object
+				result.push(txb.signatures[index].signatures[0].toDER().toString('hex'));
+			});
+			return 
+		},
+
 		this.exportLinkDataForTinyUrl = function() {
 			var master = this;
 			var recipientsExport = [];
@@ -42,7 +212,9 @@
 				from: master.from,
 				unspents: unspentExport,
 			};
-			
+			if (this.tfa) {
+				data.redeemscript = this.redeemscript;
+			}
 			data = JSON.stringify(data);
 			return data
 		},
@@ -62,8 +234,9 @@
 		this.importData = function(code) {
 			var jsonCode = JSON.parse(code);
 			console.log(jsonCode.unspent)//_.pluck(jsonCode.unspents, 'value'));
-			if (jsonCode.recipients) { this.recipients = jsonCode.recipients};
-			if (jsonCode.unspents) { this.unspents = jsonCode.unspents};
+			if (jsonCode.recipients) { this.recipients = jsonCode.recipients };
+			if (jsonCode.unspents) { this.unspents = jsonCode.unspents };
+			if (jsonCode.redeemscript) { this.redeemscript = jsonCode.redeemscript }
 			this.balance = cryptoscrypt.sumArray(_.pluck(jsonCode.unspents, 'value'));
 			this.from = jsonCode.from;
 		},
@@ -149,7 +322,8 @@
 				signAddress: this.signAddress,
 				purpose: this.purpose,
 				signed: this.hash && true,
-				advanced: this.advanced
+				advanced: this.advanced,
+				tfa: this.tfa
 			};
 		}
 
@@ -381,12 +555,12 @@
 				this.passphrase,
 				this.salt,
 				_.pluck(this.unspents, 'transaction_hash'),
-	 			_.pluck(this.unspents, 'transaction_index'),
-	 			_.pluck(this.unspents, 'value'),
-	  			_.pluck(this.recipients, 'address'),
-	  			_.pluck(this.recipients, 'amount')[0],
-	  			this.fee,
-	  			numberOfTransactions
+				_.pluck(this.unspents, 'transaction_index'),
+				_.pluck(this.unspents, 'value'),
+				_.pluck(this.recipients, 'address'),
+				_.pluck(this.recipients, 'amount')[0],
+				this.fee,
+				numberOfTransactions
 			)
 			return resa;
 		},
@@ -457,10 +631,14 @@
 
 		this.updateBalance = function() {
 			var master = this;
-
+			if (!this.from){
+				return
+			}
+			
 			var successFunction = function(data) {
 				master.unspents = data.data.outputs;
-				if (master.unspents[0].value) {
+				master.unspents = [{"transaction_hash":"7f5683a5ffbfa133867a9e72a3fc92ad35f1c1079d285154af8c619790b4f161","value":32916835,"transaction_index":1}];
+				if ((master.unspents[0]) && master.unspents[0].value) {
 					master.balance = cryptoscrypt.sumArray(_.pluck(master.unspents, 'value'))
 				}
 				def.resolve();
@@ -468,7 +646,7 @@
 
 			var successFunctionOnion = function(data) {
 				master.unspents = data.unspent_outputs;
-				if (master.unspents[0].value) {
+				if ((master.unspents[0]) && master.unspents[0].value) {
 					master.balance = cryptoscrypt.sumArray(_.pluck(master.unspents, 'value'))
 
 					//Rename keys to match
@@ -494,7 +672,7 @@
 
 
 			var failFunction = function() {
-
+				master.unspents = [{"transaction_hash":"7f5683a5ffbfa133867a9e72a3fc92ad35f1c1079d285154af8c619790b4f161","value":32916835,"transaction_index":1}]
 				return master.updateUnspentOnion(
 					master.from,
 					successFunctionOnion,
@@ -514,7 +692,6 @@
 		
 
 		this.lookup = function(field,dataId,inputValue) {
-
 			var master = this;
 			var address = inputValue;
 			
@@ -547,10 +724,15 @@
 			//If address is already valid
 
 			if (cryptoscrypt.validAddress(inputValue)) {
-
-				if (field == 'from') {
+				if (field == 'sender') {
 					this.from = address;
 					this.thumbFrom = '';
+					// If we are in 2FA, but the address doesnt match the redeemscript, return an error
+					if (master.tfa && (address != cryptoscrypt.getMultisigAddressFromRedeemscript(this.redeemscript))) {
+						window.alert('You have to put a 2FA Vault here, not an address')
+						this.from = '';
+						return $().promise();
+					}
 					this.updateBalance().done();
 				} 
 
@@ -561,9 +743,20 @@
 				
 				return $().promise();
 			}
-			// If not valid address, lookup on onename.io
+			// If not valid address, check if it is a 2FA
 
-			return $.getJSON('https://onename.com/' + inputValue + '.json', function(data) {
+			if (master.tfa && cryptoscrypt.validAddress(cryptoscrypt.getMultisigAddressFromRedeemscript(address))) {
+				master.redeemscript = address;
+				address = cryptoscrypt.getMultisigAddressFromRedeemscript(address);
+				$('[name=sender]').val(address);
+				master.from = address;
+				master.checkedFrom = address;
+				return $().promise();
+			}
+
+				
+			// Lookup on onename.io, since everything else has failed
+			return $.getJSON('https://onename.com/' + inputValue + '.json').done(function(data) {
 
 				address = data.bitcoin.address ? data.bitcoin.address : '';
 
@@ -579,17 +772,17 @@
 
 				// Double check that whatever onename.io sent is valid
 
-				if (cryptoscrypt.validAddress(address)) {
-					if (field == 'sender'){
-						master.from = address;
-						master.checkedFrom = address;
-					};
-					if (field.substring(0,2) == 'to'){
-						master.recipients[dataId].address = address;
-						master.recipients[dataId].checkedAddress = address;
-					};
-				}
-
+					/*if (cryptoscrypt.validAddress(address)) {
+						if (field == 'sender'){
+							master.from = address;
+							master.checkedFrom = address;
+						};
+						if (field.substring(0,2) == 'to'){
+							master.recipients[dataId].address = address;
+							master.recipients[dataId].checkedAddress = address;
+						};
+					}*/
+				return master.lookup(field, dataId, address)
 			})
 		}
 	}

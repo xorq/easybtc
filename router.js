@@ -7,41 +7,70 @@ define([
   'views/coinvoice',
   'views/multisig',
   'models/multisig',
-  'models/transaction'
-], function($, _, Backbone, IndexView, VaultView, Coinvoice, MultisigView, Multisig, Transaction){
+  'models/transaction',
+  'views/intro'
+], function($, _, Backbone, IndexView, VaultView, Coinvoice, MultisigView, Multisig, Transaction, Intro){
 
   var AppRouter = Backbone.Router.extend({
     routes: {
-      '': 'index',
+      'transaction' : 'transaction',
       'vault' : 'vault',
-      'coinvoice' : 'coinvoice',
+      'tfavault' : 'tfaVault',
+      'tfaspend' : 'tfaSpend',
+      'receive' : 'receive',
       'multisig' : 'multisig',
-      'chain' : 'chain'
+      'chain' : 'chain',
+      'intro' : 'intro'
     },
     currentView: false,
-    index: function() {
+
+    intro: function() {
+      if (this.currentView) {
+        this.currentView.undelegateEvents();
+      }
+      this.currentView = new Intro({});
+      this.currentView.render();
+      $('.nav > li').removeClass('active').filter('[name=intro]').addClass('active');
+    },
+    transaction: function() {
       if (this.currentView) {
         this.currentView.undelegateEvents();
       }
       this.currentView = new IndexView({ model: new Transaction});
       this.currentView.init('normal');
-      $('.nav > li').removeClass('active').filter('[name=create]').addClass('active');
+      $('.nav > li').removeClass('active').filter('[name=transaction]').addClass('active');
     },
     vault: function() {
       if (this.currentView) {
         this.currentView.undelegateEvents();
       }
       this.currentView = new VaultView({ });
-      this.currentView.render();
+      this.currentView.render({ tfa:false });
       $('.nav > li').removeClass('active').filter('[name=vault]').addClass('active');
     },
-    coinvoice: function() {
+    tfaVault: function() {
+      if (this.currentView) {
+        this.currentView.undelegateEvents();
+      }
+      this.currentView = new VaultView({ });
+      this.currentView.render({ tfa:true });
+      $('.nav > li').removeClass('active').filter('[name=tfavault]').addClass('active');
+    },
+    tfaSpend: function() {
+      if (this.currentView) {
+        this.currentView.undelegateEvents();
+      }
+      this.currentView = new IndexView({ model: new Transaction});
+      this.currentView.init('tfa');
+      $('.nav > li').removeClass('active').filter('[name=tfaspend]').addClass('active');
+    },
+    receive: function() {
       if (this.currentView) {
         this.currentView.undelegateEvents();
       }
       this.currentView = new Coinvoice();
       this.currentView.render();
-      $('.nav > li').removeClass('active').filter('[name=coinvoice]').addClass('active');
+      $('.nav > li').removeClass('active').filter('[name=receive]').addClass('active');
     }, 
     multisig: function() {
       if (this.currentView) {

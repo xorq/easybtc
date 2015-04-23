@@ -172,7 +172,9 @@ define([
 					32
 				)
 			);
-			return result
+			scrypt = null;
+			delete scrypt;
+			return result;
 		},
 
 		pbkdf2o: function(passphrase, salt) {
@@ -397,9 +399,14 @@ define([
 		},
 
 		getMultisigAddressFromRedeemscript: function(redeemscript) {
-			var script = Bitcoin.Script.fromHex(redeemscript);
-			script = Bitcoin.scripts.scriptHashOutput(script.getHash())
-			return Bitcoin.Address.fromOutputScript(script).toString()
+			try {
+				var script = Bitcoin.Script.fromHex(redeemscript);
+				script = Bitcoin.scripts.scriptHashOutput(script.getHash())
+				return Bitcoin.Address.fromOutputScript(script).toString()
+			} catch(err){
+				
+			}
+			return false
 		},
 
 		getMultisigAddress: function(pubKeys, numberOfSignatures) {

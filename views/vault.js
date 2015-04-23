@@ -6,8 +6,11 @@ define([
 	'models/crypto', 
 	'models/qrcode',
 	'models/bitcoin',
-], function($, _, Backbone, WordList, crypto, qrcode, Bitcoin){
+	'models/dialogs'
+], function($, _, Backbone, WordList, crypto, qrcode, Bitcoin, Dialogs){
+	var vaultParts = {'pubkeyComputer':'', 'pubkeyMobile':''};
 	var checking = false;
+	var tfa = undefined;
 	var VaultView = Backbone.View.extend({
 		el: $('#contents'), 
 		template: _.template($('#vaultViewTemplate').text()), 
@@ -16,10 +19,60 @@ define([
 			'click .btn-generate' : 'pleaseWait',
 			'keyup input[name=passphrase]' : 'deleteIfChanged', 
 			'keyup input[name=email]' : 'deleteIfChanged',
-			'focus input[id=passphrase]' : 'internetChecker'
+			'focus input[id=passphrase]' : 'internetChecker',
+			'click .btn-generate-computer' : 'tfaGenerateComputer',
+			'click .btn-generate-mobile' : 'tfaGenerateMobile',
 		}, 
 
+		tfaGenerateMobile: function() {
+			//function(data, text, title, extraSize, QRDataSize)
+			var passphrase = $('input[name=passphrase]', this.$el).val()
+			var salt = $('input[name=passphrase]', this.$el).val()
+
+			var data = cryptoscrypt.validPkey(passphrase) ? cryptoscrypt.pkeyToPubKey(passphrase) : cryptoscrypt.warp(
+					passphrase, 
+					salt
+				)[2];
+			Dialogs.dialogQrCode(data, 'You will be asked to scan this QRCode on the computer', 'Public Key');
+
+		},
+
+		tfaGenerateComputer: function() {
+			var master = this;
+			var callback = function(code) {
+				var address = cryptoscrypt.pubkeyToAddress(code)
+				if (cryptoscrypt.validAddress(address)) {
+					vaultParts.pubkeyMobile = code;
+					return true
+				}
+			}
+			var callback2 = function() {
+				//function(data, text, title, extraSize, QRDataSize)
+				var passphrase = $('input[name=passphrase]', master.$el).val()
+				var salt = $('input[name=passphrase]', master.$el).val()
+				if (cryptoscrypt.validPkey(master.passphrase)) { 
+					return 
+				};
+				vaultParts.pubkeyComputer = cryptoscrypt.validPkey(master.passphrase) ? cryptoscrypt.pkeyToPubKey(master.passphrase) : cryptoscrypt.warp(
+					passphrase, 
+					salt
+				)[2];
+				if (vaultParts.pubkeyComputer == vaultParts.pubkeyMobile) {
+					window.alert('Your Computer\'s public key appears to be the same as your mobile\'s, you should have different passphrases on each devices. Process aborted')
+					return
+				}
+				multisig = cryptoscrypt.getMultisigAddress([vaultParts.pubkeyComputer, vaultParts.pubkeyMobile], 2)
+
+				Dialogs.dialogQrCode(multisig.redeemscript, '<h2> Success !</h2>This QR Code contains your 2FA Bitcoin Address.</br>You will need your mobile and your computer to spend from it</br>Do save the data in this QR Code and use the address to send funds to the ZFA Vault.<h4>' + multisig.address + '</h4>', '2FA bitcoin address')
+			}
+			//function(text, title, callback, callback2)
+			Dialogs.dataGetter('Scan the QRcode provided by your mobile device here </br><h6>(Of course, your passphrase should be different on each devices)</h6>', 'Mobile Data', callback, callback2);
+		},
+
 		internetChecker: function() {
+			/*if (this.tfa) {
+				return
+			}*/
 			var master = this;
 			goodpage = function() { return ($('Title').html() == 'EasyBTC Vault Creator') }
 			iCheck = function() {
@@ -35,7 +88,7 @@ define([
 				.done(function(data){
 					if((data.result=='yes') & goodpage()) {
 						$('div[id=contents]').css('border','3px solid red');
-						$('div[id=vault-warning]').html('<h5 style=color:red>You are using an online computer, as a result this vault is insecure. You should either use an offline computer, or <a href="tails.boum.org">Tails</a> with internet turned off before entering the passphrase, in which case you should not go back online before rebooting your computer.</h5>')
+						$('div[id=vault-warning]').html('<h5 style=color:red>You are using an online computer, therefore this vault will be insecure. Consider turning off internet while creating the vault, and rebooting before going back online, ideally using <a href="http://tails.boum.org">Tails</a></h5>')
 					}
 				})
 				.fail(function(){
@@ -49,13 +102,16 @@ define([
 			} 
 		},
 
-		render: function() {
-
+		render: function(parameters) {
 			$('Title').html('EasyBTC Vault Creator');
-			this.$el.html(this.template());
+			this.tfa = parameters.tfa;
+			this.$el.html(this.template({tfa:parameters.tfa}));
 			$('div[id=contents]').css('border','2px solid black');
 			checking = false;
-
+			//$('.btn-generate').html(parameters.tfa ? 'Computer' : 'Generate')
+			if (parameters.tfa == true) {
+				$('div[name=vault-tfa-text]').html('<h4>Open this page on your computer and on your mobile and follow the steps, a 2FA bitcoin address will be generated</h4><h5>(You will need a webcam on your computer)</h5>')
+			}
 		}, 
 
 		random: function() {

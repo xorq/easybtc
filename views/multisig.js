@@ -6,8 +6,9 @@ define([
 	'models/multisig',
 	'models/qrcode',
 	'models/bitcoin',
-	'jqueryui'
-], function($, _, Backbone, crypto, Multisig, qrcode, Bitcoin, jqueryui){
+	'jqueryui',
+	'models/dialogs'
+], function($, _, Backbone, crypto, Multisig, qrcode, Bitcoin, jqueryui, dialogs){
 	var checking = false;
 	var MultisigView = Backbone.View.extend({
 		el: $('#contents'), 
@@ -52,11 +53,16 @@ define([
 			'keyup input[name=tinyurl]' : 'loadTiny',
 			'click button[name=reset]' : 'reset',
 			'click button[name=test]' : 'test',
+			'click [name=btn-show-tiny-url]' : 'tinyUrlShow'
 		},
 
 		test: function() {
 			this.model.testOut();
 			this.render();
+		},
+		
+		tinyUrlShow: function() {
+			$('div[name=tiny-url-tool]').toggle()
 		},
 
 		reset: function() {
@@ -100,18 +106,19 @@ define([
 			callback = function(data) {
 				var address = cryptoscrypt.findBtcAddress(data);
 				if (address) {
-					master.lookup(false, field, address);
-					$('input[name=entry-field][id=' + field + ']').val(data);
+					$('input[name=entry-field][id=' + field + ']').val(address);
 					return true
 				} else {
 					return false
 				}
 			};
-			var callback2 = function() {
-				master.render()
+			var callback2 = function(data) {
+				address = cryptoscrypt.findBtcAddress(data);
+				master.lookup(false, field, address);
+				$('input[name=entry-field][id=' + field + ']').val(address);
 			};
 
-			this.dataGetter('Recipient Address', 'Scan your recipient\'s address', callback, callback2)
+			dialogs.dataGetter('Recipient Address', 'Scan your recipient\'s address', callback, callback2)
 
 
 		},
@@ -136,7 +143,7 @@ define([
 				master.renderTransaction()
 			};
 
-			this.dataGetter('Recipient Address', 'Scan your recipient\'s address', callback, callback2)
+			dialogs.dataGetter('Recipient Address', 'Scan your recipient\'s address', callback, callback2)
 
 
 		},
@@ -152,7 +159,7 @@ define([
 				or you can push it directly with this button :</br></br>\
 				<button class="btn btn-danger" name="pushTx">Push</button></br></br>';
 				data = this.model.buildMultisig();
-				this.dialogQrCode(data, text, title, 50, 850);
+				dialogs.dialogQrCode(data, text, title, 50, 850);
 				$('button[name=pushTx]').click(function(){
 					var confirm = window.confirm('Are you absolutely sure ? Bitcoin Transactions cannot be reversed ! Continue at your own risks!')
 					if (confirm == true) {
@@ -188,16 +195,17 @@ define([
 		showSignature: function(ev) {
 			var master = this;
 			var field = ev.currentTarget.id;
+			console.log(master.model.signatures[field].toString())
 			var data = master.model.signatures[field] ? JSON.stringify(
 				{
 					address : master.model.pubkeys[field].address,
 					signature : master.model.signatures[field].toString(),
-					checksum : sjcl.hash.sha256.hash(master.model.pubkeys[field].address + master.model.pubkeys[field].signature)[0],
+					checksum : sjcl.hash.sha256.hash(master.model.pubkeys[field].address + master.model.signatures[field])[0],
 					txchecksum : sjcl.hash.sha256.hash(master.model.getTx())[0]
 				}) : null;
 			var text = 'This is the signature from:</br> ' + this.model.pubkeys[field].address + '</br></br>';
 			var title = 'Signature of ' + this.model.pubkeys[field].address;
-			this.dialogQrCode(data , text, title);
+			dialogs.dialogQrCode(data , text, title);
 		},
 
 		deleteSignature: function(ev) {
@@ -231,7 +239,9 @@ define([
 				} else {
 					this.model.sign(strongWrap[0], field);
 				}
-			} 
+			} else {
+				this.model.sign(passphrase, field);
+			}
 			
 			
 			$('[name=signature-hex][id=' + field + ']').val(this.model.signatures[field])
@@ -321,7 +331,7 @@ define([
 
 		renderSignature: function(action) {
 
-			action = action ? 'easeOutSine' : null;
+			var action = action ? 'easeOutSine' : null;
 			$('span[name=chevron-signature]').toggleClass('glyphicon-triangle-left').toggleClass('glyphicon-triangle-bottom')
 			if($('div[name=multi-signature]',this.el).children().length == 0) {
 				$('.form1').addClass('disabled');
@@ -427,7 +437,10 @@ define([
 			var text = 'Here you can scan a signature only';
 
 			var callback = function(data) {
+				console.log(data);
+
 				jaison = JSON.parse(data);
+				console.log(sjcl.hash.sha256.hash(jaison.address + jaison.signature)[0]);
 				if (jaison.checksum == (sjcl.hash.sha256.hash(jaison.address + jaison.signature)[0]) && 
 				jaison.txchecksum == (sjcl.hash.sha256.hash(master.model.getTx())[0])) {
 					master.model.pubkeys[field].signature = jaison.signature;
@@ -438,7 +451,7 @@ define([
 				master.openSubmitSignature(ev)
 			};
 
-			this.dataGetter(title, text , callback, callback2)
+			dialogs.dataGetter(title, text , callback, callback2)
 		},
 
 		importQrTx: function(ev) {
@@ -459,143 +472,8 @@ define([
 				master.render();
 			};
 
-			this.dataGetter(title, text , callback, callback2)
+			dialogs.dataGetter(title, text , callback, callback2)
 		},
-
-		dialogQrCode: function(data, text, title, extraSize, QRDataSize) {
-			var extraSize = extraSize ? extraSize : 0 ;
-			if(!data) {
-				return
-			}
-
-			$('#dialog-qrcode').dialog('destroy');
-			//var link = window.location.pathname + '?data=' + this.model.exportData() + '#Multisig';
-
-			$( '#dialogs' ).html('\
-				<div id="dialog-qrcode" title="' + title + '">'
-
-					+ text +
-
-					'<div style=margin-left:20px id=qrcode-display-window>\
-					</div>\
-				</div>'
-			);
-
-			var qrcodeData = new QRCode('qrcode-display-window', { 
-					width: 300 + extraSize, 
-					height: 300 + extraSize, 
-					correctLevel : QRCode.CorrectLevel.L
-				});
-			if (data.length > QRDataSize) {
-				this.dialogQrCodes(data, text, title, QRDataSize);
-			} else {
-				try {
-					qrcodeData.makeCode(data);
-				} catch(err) {
-					this.dialogQrCodes(data, text, title);
-					//qrcodeData.makeCode(err);
-				}
-			}
-
-			var opt = {
-				autoOpen: false,
-				modal: false,
-				width: 400 + extraSize,
-				height:450 + extraSize,
-				hide: { effect: "fade", duration: 400 },
-				show: { effect: "fade", duration: 400 }
-			};
-			$('#qrcode-display-window').append('<h2>Data</h2><h5 style="word-break:break-all; margin-right: 30px">' + data + '</h5>');
-			$('#dialog-qrcode').dialog(opt);
-			$('#dialog-qrcode').css({
-				'border': '1px solid #ccec8c',
-				'background':'#ccec8c', 
-				'border': '2px solid #ccec8c', 
-				'color': '#000000', 
-				'title': 'Details',
-				//'font-weight' : ''
-			});
-			$('#dialog-qrcode').dialog('open')
-			$('[role=dialog]').addClass('hidden-print')
-
-		},
-
-	    dialogQrCodes: function(dataArray, text, title, QRDataSize, comments) {
-	      $('div[class=visible-print]').html('');
-	        //dataArray = ['zerzerzer','zfizuoizeuroizeru','jozeirjzoeiruzeroziu']
-	      QRDataSize = QRDataSize ? QRDataSize : 850
-	      if (typeof(dataArray) == 'string') {
-	        dataArray = cryptoscrypt.stringToChunks(dataArray, 850);
-	      }
-	      $('#dialog-qrcodes').dialog('destroy');
-	      //var link = window.location.pathname + '?data=' + this.model.exportData() + '#Multisig';
-	      $( '#dialogs' ).html('\
-	      <div id="dialog-qrcodes" title=' + title + '>'
-
-	        + text +
-
-	        '<div id="qrcode-display-window" media="print">\
-	        <button class="btn btn-danger" type="button" value="Print Div" onclick=print()> Print </button>\
-	        </div>\
-	      </div>');
-	      $('div[class=visible-print]').append('<h3 style=text-align:center>' + title + '</h3></br>');
-	      $('div[class=visible-print]').append('<h4 style=text-align:left>' + text + '</h4></br>');
-	      dataArray.forEach(function(chunk, index) {
-	        $('div[id=qrcode-display-window]').append('<div style=margin-bottom:20px id=qrcode-number-' + index + '> ' + (comments && comments[index] ? '<h5>' + comments[index] + '</h5>' : '') + '<button name=btn-qrcode-number-' + index + ' class=btn-primary>QRCode # ' + (1 + index) + '</button></div>')
-	        $('div[class=visible-print]').append('\
-	          <div class=col-xs-6 style="page-break-inside: avoid">\
-	            <legend>QRcode #' + (1 + index) + '</legend>\
-	            <div id=aqrcode-number-' + index + '></div>\
-	            ' + (comments && comments[index] ? '<h5>' + comments[index] + '</h5>' : '') +'\
-	          </div>\
-	          '
-	        )
-
-	        var qrcodeData = new QRCode('qrcode-number-' + index, { 
-	            width: 300, 
-	            height: 300, 
-	            correctLevel : QRCode.CorrectLevel.L
-	          });
-	        qrcodeData.makeCode(chunk);
-	        $('canvas','div[id=qrcode-number-' + index + ']').css('border','20px solid').css('border-color','white');
-
-	        var aqrcodeData = new QRCode('aqrcode-number-' + index, { 
-	            width: 200, 
-	            height: 200, 
-	            correctLevel : QRCode.CorrectLevel.L
-	          });
-	       
-	        aqrcodeData.makeCode(chunk);
-	        
-
-	        $('button[name=btn-qrcode-number-' + index + ']').click(function() {
-	          $('canvas', 'div[id=qrcode-number-' + index + ']').toggle('blind');
-	        })
-	        $('canvas', 'div[id=qrcode-number-' + index + ']').css('display','none');
-	      });
-
-	      var opt = {
-	        autoOpen: false,
-	        modal: false,
-	        width: 400,
-	        height:500 + 10 * dataArray.length,
-	        hide: { effect: "fade", duration: 400 },
-	        show: { effect: "fade", duration: 400 }
-	      };
-
-	      $('#qrcode-display-window').append('<h2>Data</h2><h5 style=word-break:break-all>' + dataArray.join('</br></br>') + '</h5>');
-	      $('#dialog-qrcodes').dialog(opt);
-	      $('#dialog-qrcodes').css({
-	        'border': '1px solid #ccec8c',
-	        'background':'#ccec8c', 
-	        'border': '2px solid #ccec8c', 
-	        'color': '#000000', 
-	        'title': 'Details',
-	        'hide': { effect: "fade", duration: 2000 }
-	      });
-	      $('#dialog-qrcodes').dialog('open')//.parent().effect('slide');
-	      $('[role=dialog]').addClass('hidden-print')
-	    },
 
 		getDataLink: function() {
 			var link = window.location.pathname + '?data=' + this.model.exportLinkData() + '#multisig';
@@ -604,7 +482,7 @@ define([
 			</br></br>This is the hash for all the data : </br> ' + '<a style="color:red">' + hash + '</a></br>You can use it to double check that all the data are the same on different devices</br></br> Also, you can use tools/import data to transfer the data using the following QRCodes:</br></br>'
 			var title = 'Data Link';
 			var data = this.model.exportData();
-			this.dialogQrCodes(data, tex, title);
+			dialogs.dialogQrCodes(data, tex, title);
 			return {link: link, hash: hash, data: data}
 		},
 
@@ -758,7 +636,9 @@ define([
 					 Signatures\
 				</button>\
 				</div>\
-				<div class='form-group' name='multi-signature'>\
+				<div class=col-xs-12>\
+					<div class='form-group' name='multi-signature'>\
+					</div>\
 				</div>\
 			");
 			$('div[name=multiTransaction]',this.el).html(
@@ -778,15 +658,15 @@ define([
 			},1);
 		},
 
-		clearPubkey: function(ev) {
+		/*clearPubkey: function(ev) {
 			var field = ev.currentTarget.id;
 			if (this.model.pubkeys[field].address) {
 				this.model.clearField(field);
 				$('span[name=pubkey-field-title][id=' + field + ']')[0].style = 'background-color:default'	
 			}
 				$('div[name=multi-address]').html('');
-				$('button[name=spendMultisig]').addClass('disabled');
-		},
+				$('button[name=spend-multisig]').addClass('disabled');
+		},*/
 
 		addPubkey: function() {
 			this.model.addEntry();
@@ -813,68 +693,6 @@ define([
 				this.model.importData(data);
 			}
 			this.render();
-		},
-
-		dataGetter: function(text, title, callback, callback2) {
-			$('#dialog-data-getter').dialog('destroy');
-			$( '#dialogs' ).html('\
-				<div id="dialog-data-getter" title="' + title + '">'
-
-					+ text +
-
-					'<div  style="width: 340px; height: 300px" id=video-display-window>\
-					</div>\
-					<div id="qr-status-tx"></div>\
-				</div>'
-			);
-			var opt = {
-				autoOpen: false,
-				modal: false,
-				width: 380,
-				height:420,
-				hide:'fade',
-				show:'fade'
-			};
-			$('#dialog-data-getter').dialog(opt);
-			$('#dialog-data-getter').css({
-				'border': '1px solid #b9cd6d',
-				'background':'#b9cd6d', 
-				'border': '1px solid #b9cd6d', 
-				'color': '#FFFFFF', 
-				'title': 'Details',
-				'font-weight' : 'bold'
-			});
-			$('#dialog-data-getter').dialog('open')
-			//video
-			$('div[id=video-display-window]').html5_qrcode(function(code){
-				if (callback(code) == true) {
-					localMediaStream.stop();
-					localMediaStream.src = null;
-					localMediaStream.mozSrcObject = null;
-					localMediaStream = null;
-					setTimeout(function(){
-						$('#dialog-data-getter').dialog('destroy');
-						$('#dialog-data-getter').empty();
-					}, 2000);
-					$('#dialog-data-getter').append('<h4 style="position:absolute;top:100px;color:red;word-break:break-all">' + code + '</h4>');
-					callback2();			
-				}
-			},
-			function(error) {
-				console.log('error');
-			}, 
-			function(error) {
-				console.log('error');
-			});
-
-			$('[title=Close]').click(function(){
-				if (typeof(localMediaStream) != 'undefined' && localMediaStream) {
-					localMediaStream.stop();
-					localMediaStream.src = null;
-					localMediaStream.mozSrcObject = null;
-					localMediaStream = null;
-				}
-			})
 		},
 
 		render: function() {
@@ -960,7 +778,7 @@ define([
 			data = JSON.stringify(this.model.multisig)
 			text = '<h4>This QRCode contains your Multisig</h4>'
 			title = 'Multisig'
-			this.dialogQrCode(data, text, title)
+			dialogs.dialogQrCode(data, text, title)
 
 		},
 
@@ -969,11 +787,12 @@ define([
 			this.model.findAddress();
 			var tex ='<h4 style="word-break:break-all">' + this.model.multisig.address + '</h4>'
 			var data = this.model.multisig.address;
-			this.dialogQrCode(data, tex, 'Multisig Address');
+			dialogs.dialogQrCode(data, tex, 'Multisig Address');
 
 		},
 
 		lookup: function(ev, field, inputValue) {
+			console.log('lookingup');
 			this.model.multisig = {}
 			this.model.pubkeys[field] = {}
 			$('[name=multisig-address]').val('');
@@ -991,7 +810,7 @@ define([
 				// If the address has already been resolved and we know the public key then stop looking up
 				if (cryptoscrypt.pubkeyToAddress(this.model.pubkeys[field].pubkey) && ((cryptoscrypt.pubkeyToAddress(this.model.pubkeys[field].pubkey) == this.model.pubkeys[field].address))) {
 					master.renderPubkey(field);
-					return
+					return $().promise()
 				};
 				// This is the same as above
 				/*if ((savedPubkey.address == inputValue) && (savedPubkey.pubkey)) {
@@ -1005,17 +824,18 @@ define([
 						savedPubkey.pubkey = 'unknown';
 						savedPubkey.onename = inputValue;
 												
-						return
-
+						return $().promise()
+						/*
 						master.showData(false, field);
 						$('[name=multisig-address]').val('');
 						$('[name=multisig-balance]').val('');
 						master.renderPubkey(field);
+						*/
 					}
 					master.renderPubkey(field);
 				})
 				master.updateUnspent();
-				return
+				return $().promise()
 			}
 			//The input is a public key
 			if (inputValue && cryptoscrypt.pubkeyToAddress(inputValue)) {
@@ -1023,7 +843,7 @@ define([
 				master.model.pubkeys[field].address = cryptoscrypt.pubkeyToAddress(inputValue);
 				this.updateUnspent();
 				master.renderPubkey(field);
-				return
+				return $().promise()
 			}
 			//The input is anything else
 			if (inputValue) {
@@ -1033,7 +853,7 @@ define([
 						master.lookup(false, field, master.model.pubkeys[field].address);
 					}
 				})
-				return
+				return $().promise()
 			} else {
 				master.model.clearField(field);
 				master.render();
@@ -1064,7 +884,7 @@ define([
 				master.render()
 			};
 
-			this.dataGetter('Multisig', 'Enter your multisig Data QrCode here', callback, callback2)
+			dialogs.dataGetter('Multisig', 'Enter your multisig Data QrCode here', callback, callback2)
 		}
 	});
 

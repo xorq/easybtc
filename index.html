@@ -23,35 +23,40 @@
 	</head>
 	<body>
 		<div class='container hidden-print'>
-			<h2 style=''>Easy-<span style='font-size:26px;top:2px' class='glyphicon glyphicon-bitcoin'></span>TC.org, easy as A-B-T-C</h2>
+			
 			<!--<h4>Cold Storage for everyone</h4>
 			<h6>Easy-BTC uses <a href=http://www.bitcoinjs.org/>BitcoinJS</a>, <a href='http://onename.io/'>Onename.io</a> and is compatible with <a href='https://keybase.io/warp'>Warp Wallet</a></h6>-->
 			<ul class='nav nav-pills' role='tablist'>
+				<li name='intro' style='background:blue'><a style='color:white' href='#intro'>Easy-BTC.org</a></li>
 				<li name='vault'><a href='#vault'>Warp Vault</a></li>
-				<li name='create' class='active'><a href='#'>Warp Spend</a></li>
-				<li name='coinvoice'><a href='#coinvoice'>Receive</a></li>
-				<li name='multisig'><a href='#multisig'>Multisig</a></li>
+				<li name='transaction' class='active'><a href='#transaction'>Warp Spend</a></li>
+				<li name='tfavault'><a href='#tfavault'>2FA Vault</a></li>
+				<li name='tfaspend'><a href='#tfaspend'>2FA Spend</a></li>
+				<li name='receive'><a href='#receive'>Receive</a></li>
+				<li name='multisig'><a href='#multisig'>Multisig (Advanced)</a></li>
 				<li name='chain'><a href='#chain  '>Chain (Advanced)</a></li>
 			</ul>
-			<div id='contents' class='panel panel-primary' style='background:#ddd;border-color=#044;border:2px black solid' ></div>
+			<div id='contents' class='col-xs-12 panel panel-primary' style='background:#ddd;border-color=#044;border:2px black solid' ></div>
 		</div>
 
 		<script data-main='config.js' src='bower_components/requirejs/require.js'></script>
 
 		<script type='text/template' id='multisigViewTemplate'>
 			<div class='row form-group col-xs-12'>
-				<button type='button' data-toggle='dropdown' class='btn dropdown-toggle'><span class='glyphicon glyphicon-qrcode'></span> Tools <span class='caret'></span></button>	
+				<button style='float:left; margin-right:10px' type='button' data-toggle='dropdown' class='btn dropdown-toggle'><span class='glyphicon glyphicon-qrcode'></span> Tools <span class='caret'></span></button>
+				<button class='btn btn-warning' style='float:left; margin-right:10px' name='test'>Fake data</button>
+				<button class='btn btn-primary' style='float:left; margin-right:10px;margin-left:10px' name='data-link'>Data</button>
+				<button class='btn btn-danger' style='float:left' name='reset'>Reset</button>
+
 				<ul class='dropdown-menu'>
 					<li name='btn-import-redeemscript'><a href='#multisig'>Import Multisig Data</a></li>
 					<li name='btn-export-multisig'><a href='#Multisig'>Export Multisig Data</a></li>
 					<li class='divider'></li>
 					<li name='btn-import-data'><a href='#Multisig'>Import Data</a></li>
+					<li name='btn-show-tiny-url'><a href='#Multisig'>Tiny Url Tool</a></li>
 					<!--<li name='btn-export-tx'><a href='#Multisig'>Export Transaction</a></li>-->
 				</ul>
-				<button class='btn btn-danger' style='float:right' name='reset'>Reset</button>
-				<button class='btn btn-primary' style='float:right; margin-right:30px' name='data-link'>Data</button>
-				<button class='btn btn-warning' style='float:right; margin-right:30px' name='test'>Test with fake data</button>
-				<div class='input-group' style='float:right;margin-right:20px'>
+				<div name='tiny-url-tool' class='input-group' style='float:left;margin-right:20px;display:none'>
 					<button class='btn btn-default disabled' name='load-data'>Load Data</button>
 					<button class='btn btn-default' name='save-data'>Save Data</button>
 					<label style='margin-left:10px'>tinyurl:&nbsp&nbsp</label>
@@ -75,7 +80,7 @@
 								<input type='text' class='form-control form1' id='<%=index%>' name='entry-field'  placeholder='Enter Address, Onename, or Public Key' value='<%=pubkey.address%>'>
 								</input>
 								<span class='input-group-btn'>
-									<button class='btn btn-default glyphicon glyphicon-camera form1' type='button' name='btn-scan' id='<%=index%>'></button>
+									<button class='btn btn-default glyphicon glyphicon-camera form1 groupeA' type='button' name='btn-scan' id='<%=index%>'></button>
 								</span>
 								<span class='input-group-btn'>
 									<button class='btn btn-default glyphicon glyphicon-trash form1' type='button' name='btn-delete-pubkey' id='<%=index%>'></button>
@@ -131,7 +136,6 @@
 				<div class=''>
 				<h6>&nbsp</h6>
 				</br>
-				<div class='hidden-print' id=dialogs></div>
 				</br>
 				Use at your own risks, if you find this application useful, you can buy us a coffee at 1LPUpS4nc2mo63GvgBxrUSJ6y3xumqzWSW
 				</div>
@@ -177,6 +181,7 @@
 		<script type='text/template' id='vaultViewTemplate'>
 			<form role='form col-xs-12' style='margin-right: 20px;'>
 				<div id='vault-warning'></div>
+				<div name='vault-tfa-text'></div>
 				<div class='form-group'>
 						<label for='passphrase'>Passphrase</label>
 						<input type='text' style='font-weight:bold' class='form-control' name='passphrase' id='passphrase' placeholder='Type your passphrase here' />
@@ -203,10 +208,11 @@
 				</div>
 				<div id='pleaseWait'></div>
 				<div class='button-group'>
-					<button type='button' class='btn btn-primary btn-generate' style='font-size:14px;white-space: normal ; margin-top:20px'>Generate vault</button>
-					<br>
-				<br>
+					<button type='button' class='btn btn-primary btn-generate' style='font-size:14px;white-space: normal ; margin-top:20px;display:<%=tfa && 'none'%>'>Generate vault</button>
+					<button type='button' class='btn btn-primary btn-generate-computer' style='font-size:14px;white-space: normal ; margin-top:20px;display:<%=tfa || 'none'%>'>Computer</button>
+					<button type='button' class="btn btn-warning btn-generate-mobile" style="font-size:14px;white-space: normal ; margin-top:20px;display:<%=tfa || 'none'%>">Mobile</button>
 				</div>
+				<div name='vault-tfa-content'></div>
 				<div class='row text-center'>
 					<div class='col-xs-12 col-ms-6 h3' id='text-address'></div>
 					<div class='col-xs-12 col-ms-6' id='qrcode-address-image'></div>
@@ -230,20 +236,20 @@
 		</script>
 
 		<script type='text/template' id='indexViewFromTemplate'>
-			<div class='row col-sm-9 col-xs-12 form-group has-feedback input-prepend <%=this.successClass(from) %>'>
-				<label for='sendingAddr'>Sending Address</label>
+			<div class='row col-sm-9 col-xs-12 form-group has-feedback input-prepend'>
+				<label for='sendingAddr'><%=tfa ? 'Sending 2FA Vault' : 'Sending Addresse'%></label>
 
 				<div class='row input-group hidden-xs' style='padding-left:15px'>
-					<input type='text' id='sendingAddr' tabindex='1' class='form-control' name='sender' placeholder='BTC address / Onename' value='<%= from %>'></input>
+					<input type='text' id='sendingAddr' tabindex='1' class='form-control groupeA' name='sender' placeholder='<%=tfa ? "2FA Vault" : "BTC address Onename"%>' value='<%= from %>'></input>
 					<span class='form-control-feedback <%= cryptoscrypt.validAddress(from) ? 'glyphicon glyphicon-ok' : from ? 'glyphicon glyphicon-remove' : ''%>' name='glyphicon' id='glyphicon' style='left:-5px'></span>
 					<span class='input-group-btn'>
-						<button class='btn btn-default glyphicon glyphicon-camera' type='button' name='btn-scan-from'></button>
+						<button class='btn btn-default glyphicon glyphicon-camera groupeA' type='button' name='btn-scan-from'></button>
 					</span>
-					<span class='input-group-addon hidden-xs'>Balance: <%= balance/100000000 %> BTC</span>
+					<span class='input-group-addon hidden-xs' style='font-weight:bold'>Balance: <%= balance/100000000 %> BTC</span>
 				</div>
 
 				<div class='row input-group visible-xs' style='padding-left:15px'>
-					<input type='text' id='sendingAddr' tabindex='1' class='form-control' name='sender' placeholder='BTC address / Onename' value='<%= from %>'>
+					<input type='text' id='sendingAddr' tabindex='1' class='form-control groupeA' name='sender' placeholder='BTC address / Onename' value='<%= from %>'>
 					<span class='form-control-feedback <%= cryptoscrypt.validAddress(from) ? 'glyphicon glyphicon-ok' : from ? 'glyphicon glyphicon-remove' : ''%>' name='glyphicon' id='glyphicon' style='left:-5px'></span>
 					</input>
 					<label class='col-xs-12'>
@@ -256,7 +262,6 @@
 			<div class='col-sm-1 hidden-xs' id='thumb' style='left:16px;top:25px'>
 				<img id='thumb' class='thumb' width='40' src='<%= thumbFrom %>' style='display:<%= thumbFrom ||'none'%>'</img>
 			</div>
-
 		</script>
 
 
@@ -265,16 +270,16 @@
 			<div class='fieldAddressTo' dataId='<%= index %>'>
 				<div class='row col-xs-12 col-sm-6 form-group has-feedback input-prepend <%=this.successClass(recipient.address) %>'>
 					<div class='row input-group'>
-						<input type='text' tabindex=<%=index*2+2%> class='form-control' name='to' value='<%= recipient.address %>' placeholder='Enter recipient name or Bitcoin address'>
+						<input type='text' tabindex=<%=index*2+2%> class='form-control' name='to' value='<%= recipient.address %>' placeholder='BTC address / Onename'>
 							<span class='<%= cryptoscrypt.validAddress(recipient.address) ? 'glyphicon glyphicon-ok form-control-feedback' : recipient.address ? 'glyphicon glyphicon-remove form-control-feedback' : ''%>' style='left:-10px' name='glyphicon'>
 							</span>
 						</input>
 						<span class='input-group-btn'>
-							<button class='btn btn-default glyphicon glyphicon-camera' type='button' name='btn-scan'></button>
+							<button class='btn btn-default glyphicon glyphicon-camera groupeA' type='button' name='btn-scan'></button>
 						</span>
 						<span class='input-group-btn'>
 							<span class='input-group-btn'>
-								<button style='z-index:100' class='btn btn-default glyphicon glyphicon-trash' type='button' name='btn-remove'></button>
+								<button style='z-index:100' class='btn btn-default glyphicon glyphicon-trash groupeA' type='button' name='btn-remove'></button>
 							</span>
 						</span>
 					</div>
@@ -286,7 +291,7 @@
 
 				
 		<script type='text/template' id='indexViewToThumbTemplate'>
-			<img name='thumbTo' class='' width='40' src='<%= recipient.thumb %>' style=<%=recipient.thumb || 'display:none'%>></img>
+			<img name='thumbTo' class='' width='40' src='<%= recipient.thumb %>' style='display:<%=recipient.thumb || 'none'%>'></img>
 		</script>
 
 		<script type='text/template' id='indexViewTemplate'>
@@ -301,9 +306,9 @@
 			}
 			%>
 			<div class = 'col-xs-12' name='content'>
-			<form role='form col-xs-12' style=''>
+			<form role='form col-xs-12' style='display:<%=tfa && "none"%>'>
 				<div class='dropdown col-xs-2' name='tools button-group'>
-					<button type='button' data-toggle='dropdown' class='btn btn-success dropdown-toggle'>Tools <span class='caret'></span></button>
+					<button style='' type='button' data-toggle='dropdown' class='btn btn-success dropdown-toggle'>Tools <span class='caret'></span></button>
 					<ul class='dropdown-menu'>
 						<li name='btn-show-advanced'><a href='#'><%=advanced ? 'Hide' : 'Display'%> advanced options</a></li>
 						<li class='divider'></li>
@@ -313,13 +318,15 @@
 						<li name='guidance-tails'><a href='#'>Guidance for using Tails</a></li>
 						<li name='guidance-dedicated'><a href='#'>Guidance for using a dedicated offline computer</a></li>
 						<li name='guidance-off'><a href='#'>Turn guidance off</a></li>
+						<li class='divider'></li>
+						<li name='btn-show-tiny-url'><a href='#'>TinyURL export / import</a></li>
 					</ul>
 				</div>
 				<div class='' name='btn-export' style='float:right'>
 					<button type='button' class='btn btn-warning' name='btn-export' style=''>Export Data</button>
 				</div>
 
-				<div class='input-group' style='float:right;margin-right:20px'>
+				<div name='tiny-url-tool' class='input-group' style='float:right;margin-right:20px;display:none'>
 					<button type='button' class='btn btn-default disabled' name='load-data'>Load Data</button>
 					<button type='button' class='btn btn-default' name='save-data'>Save Data</button>
 					<label style='margin-left:10px'>tinyurl:&nbsp&nbsp</label>
@@ -358,19 +365,19 @@
 					<div class='row col-xs-12 addressFrom' name='div-from' style=''>
 						
 						<div class='row col-sm-9 col-xs-12 form-group has-feedback input-prepend <%=successClass(from) %>'>
-							<label for='sendingAddr'>Sending Address</label>
+							<label for='sendingAddr'><%=tfa ? 'Sending 2FA Vault' : 'Sending Addresse'%></label>
 
 							<div class='row input-group hidden-xs' style='padding-left:15px'>
-								<input type='text' id='sendingAddr' tabindex='1' class='form-control' name='sender' placeholder='BTC address / Onename' value='<%= from %>'></input>
+								<input type='text' id='sendingAddr' tabindex='1' class='form-control groupeA' name='sender' placeholder='<%=tfa ? "2FA Vault" : "BTC address Onename"%>' value='<%= from %>'></input>
 								<span class='form-control-feedback <%= cryptoscrypt.validAddress(from) ? 'glyphicon glyphicon-ok' : from ? 'glyphicon glyphicon-remove' : ''%>' name='glyphicon' id='glyphicon' style='left:-5px'></span>
 								<span class='input-group-btn'>
-									<button class='btn btn-default glyphicon glyphicon-camera' type='button' name='btn-scan-from'></button>
+									<button class='btn btn-default glyphicon glyphicon-camera groupeA' type='button' name='btn-scan-from'></button>
 								</span>
 								<span class='input-group-addon hidden-xs' style='font-weight:bold'>Balance: <%= balance/100000000 %> BTC</span>
 							</div>
 
 							<div class='row input-group visible-xs' style='padding-left:15px'>
-								<input type='text' id='sendingAddr' tabindex='1' class='form-control' name='sender' placeholder='BTC address / Onename' value='<%= from %>'>
+								<input type='text' id='sendingAddr' tabindex='1' class='form-control groupeA' name='sender' placeholder='BTC address / Onename' value='<%= from %>'>
 								<span class='form-control-feedback <%= cryptoscrypt.validAddress(from) ? 'glyphicon glyphicon-ok' : from ? 'glyphicon glyphicon-remove' : ''%>' name='glyphicon' id='glyphicon' style='left:-5px'></span>
 								</input>
 								<label class='col-xs-12'>
@@ -393,17 +400,17 @@
 							<div class='fieldAddressTo' dataId='<%= index %>'			>
 								<div class='row col-xs-12 col-sm-6 form-group has-feedback input-prepend <%=successClass(recipient.address) %>'>
 									<div class='row input-group'>
-										<input type='text' tabindex=<%=index*2+2%> class='form-control' name='to' value='<%= recipient.address %>' placeholder='BTC address / Onename'>
+										<input type='text' tabindex=<%=index*2+2%> class='form-control groupeA' name='to' value='<%= recipient.address %>' placeholder='BTC address / Onename'>
 											<span class='<%= cryptoscrypt.validAddress(recipient.address) ? 'glyphicon glyphicon-ok form-control-feedback' : recipient.address ? 'glyphicon glyphicon-remove form-control-feedback' : ''%>' style='left:-10px' name='glyphicon'>
 											</span>
 										</input>
 										
 										<span class='input-group-btn'>
 											<span class='input-group-btn'>
-												<button class='btn btn-default glyphicon glyphicon-camera' type='button' name='btn-scan'></button>
+												<button class='btn btn-default glyphicon glyphicon-camera groupeA' type='button' name='btn-scan'></button>
 											</span>
 											<span class='input-group-btn'>
-												<button style='z-index:100' class='btn btn-default glyphicon glyphicon-trash' type='button' name='btn-remove'></button>
+												<button style='z-index:100' class='btn btn-default glyphicon glyphicon-trash groupeA' type='button' name='btn-remove'></button>
 											</span>
 										</span>
 									</div>
@@ -411,9 +418,9 @@
 							</div>
 								<div class='col-xs-10 col-sm-4 hidden-xs'>
 									<div class='input-group' style=''>
-										<input type='text' class='form-control' tabindex=<%=index*2+3%> name='amount' value='<%= recipient.amount>0 ? recipient.amount/100000000 : ''%>' placeholder='Amount' />
+										<input type='text' class='form-control groupeA' tabindex=<%=index*2+3%> name='amount' value='<%= recipient.amount>0 ? recipient.amount/100000000 : ''%>' placeholder='Amount' />
 										<span class='input-group-btn'>
-											<button class='btn btn-primary glyphicon glyphicon-download' type='button' name='btn-all'></button>
+											<button class='btn btn-primary glyphicon glyphicon-download groupeA' type='button' name='btn-all'></button>
 										</span>
 									</div>
 								</div>
@@ -422,10 +429,10 @@
 
 							<div class='row col-xs-10 col-sm-4 visible-xs'>
 								<div class='row input-group' style=''>
-									<input type='text' class='form-control' tabindex=<%=index*2+3%> name='amount' value='<%= recipient.amount>0 ? recipient.amount/100000000 : ''%>' placeholder='Amount' />
+									<input type='text' class='form-control groupeA' tabindex=<%=index*2+3%> name='amount' value='<%= recipient.amount>0 ? recipient.amount/100000000 : ''%>' placeholder='Amount' />
 									<span class='input-group-addon hidden-xs'>BTC</span>
 									<span class='input-group-btn'>
-										<button class='btn btn-primary glyphicon glyphicon-download' type='button' name='btn-all'></button>
+										<button class='btn btn-primary glyphicon glyphicon-download groupeA' type='button' name='btn-all'></button>
 									</span>
 								</div>
 								
@@ -437,7 +444,7 @@
 							</div>
 
 							<div class='col-xs-1 btn-group' style='bottom:3px;'>
-								<button type='button' class='btn-default btn-sm btn-add-recipient toButton' name='btn-add' style='<%=((index!=recipients.length-1) || (purpose == "chain")) ? 'display:none' : ''%>'>
+								<button type='button' class='groupeA btn-default btn-sm btn-add-recipient toButton groupeA' name='btn-add' style='<%=((index!=recipients.length-1) || (purpose == "chain")) ? 'display:none' : ''%>'>
 									<span class='glyphicon glyphicon-plus-sign glyphicon-align-center' style='color:green;horizontal-align:middle;font-size:18px;horizontal-align:middle;bottom:1px'></span>
 								</button>
 							</div>
@@ -450,7 +457,7 @@
 								<input type='text' class='form-control' <%=(feeMode == 'auto') ? 'readonly':''%> name='fee' id='fee' value='<%= getFee/100000000 %>'></input>
 								<span class='input-group-addon hidden-xs'>BTC</span>
 								<span class='input-group-btn'>
-									<button type='button' name='btn-feemode' class='btn <%= (feeMode == 'auto') ? 'btn-primary':'btn-danger'%> btn-feemode'>Fee: <%=feeMode%></button>
+									<button type='button' name='btn-feemode' class='groupeA btn <%= (feeMode == 'auto') ? 'btn-primary':'btn-danger'%> btn-feemode'>Fee: <%=feeMode%></button>
 								</span>
 							</div>
 						</div>
@@ -462,25 +469,19 @@
 								<span class='input-group-addon'>BTC</span>
 							</div>
 						</div>
+						<div>
+						<button style='display:<%=tfa || "none"%>' class='btn btn-warning' name='btn-validate-transaction'>Validate Transaction</button>
+						<h4 name='link-phone' style='display:none'></h4>
+						</div>
 					</div>
 
 				</div>
-
 				<div class='col-xs-12' name='signature'>
 					<legend class='legend'>Signature</legend>
-					
-
-	
 						<h5 class='bg-info guidance <%= guidance != 'tails' && 'hidden' %>'>Step 3 : Disconnect from internet, make sure no communication is possible with the computer.
 						</h5>
-
-
-
 						<h5 class='bg-info guidance <%= guidance != 'dedicated' && 'hidden' %>'>Step 3 : Click Export into QRCodes now, then open this page on your dedicated offline computer and import those QRCodes. (The next steps have to be done on the same offline computer)
 						</h5>
-
-					
-	
 						<h5 class='bg-info guidance <%= guidance == false && 'hidden' %>'>Step 4 : Enter your warp wallet passphrase & Salt (you can also enter a regular private key).
 						</h5>
 
@@ -488,12 +489,12 @@
 							Passphrase or private key
 						</label>
 						<div id='warning'></div>
-						<input type='text' class='form-control' name='passphrase' placeholder='Passphrase' />
+						<input type='text' class='form-control' name='passphrase' placeholder='Passphrase' <%=tfa ? "disabled" : ""%>>
 	
 						<label for='salt' style='margin-top:10px'>
 							Email (Salt)
 						</label>
-						<input type='text' class='form-control' name='salt' placeholder='Email / Salt' />
+						<input type='text' class='form-control' name='salt' placeholder='Email / Salt' <%=tfa ? "disabled" : ""%>>
 
 						<h5 class='bg-info guidance <%= guidance == false && 'hidden' %>'>Step 5 : Click on Sign Transaction 
 							</h5>
@@ -501,9 +502,11 @@
 						<h3 id='please-wait'></h3>
 					</div>
 					<div class='button-group'>
-						<button type='button' class='btn btn-primary' name='btn-sign' style='display:<%= (purpose != 'normal') ? 'none':'block'%>;font-size:14px;white-space: normal ; margin-top:20px'>Sign Transaction</button>
+						<button type='button' class='btn btn-primary' name='btn-sign' style='display:<%= (purpose == 'normal') ? 'block' : 'none'%>;font-size:14px;white-space: normal ; margin-top:20px'>Sign Transaction</button>
 						<button type='button' class='btn btn-warning advanced' name='btn-sign-chain' style='display:<%= purpose != 'chain' ? 'none':'block'%>;font-size:14px;white-space: normal ; margin-top:20px'>Advanced : Do a transaction chain</button>
-						<button <%=signed ? '' : 'disabled'%> type='button' class='btn btn-danger advanced' name='btn-switch-to-input' style='display:<%= (purpose != 'normal') || (advanced == false) ? 'none':'block'%>;font-size:14px;white-space: normal ; margin-top:20px'>Advanced : Load next transaction from first recipient</button>
+						<button <%=signed ? '' : 'disabled'%> type='button' class='btn btn-danger advanced' name='btn-switch-to-input' style='display:<%= (advanced == false) ? 'none':'block'%>;font-size:14px;white-space: normal ; margin-top:20px'>Advanced : Load next transaction from first recipient</button>
+						<button type='button' class='btn btn-primary' name='btn-sign-mobile' style='display:none ; font-size:14px ; white-space: normal ; margin-top:20px'>Sign Mobile</button>
+						<button type='button' class='btn btn-primary' name='btn-sign-computer' style='display:none ; font-size:14px ; white-space: normal ; margin-top:20px' disabled>Sign On Computer</button>
 					</div>
 
 					<div class=''>
@@ -534,10 +537,10 @@
 				<h6>Use at your own risks, if you find this application useful or want to support its developpment, you can buy us a coffee at 1LPUpS4nc2mo63GvgBxrUSJ6y3xumqzWSW</h6>
 				</div>
 			</form>
-			<div class='hidden-print' id=dialogs></div>
 			</div>
 		</script>
 			<div class='visible-print'>
 			</div>
 	</body>
+	<div class='hidden-print' id='dialogs'></div>
 </html>

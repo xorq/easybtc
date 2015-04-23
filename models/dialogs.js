@@ -1,8 +1,76 @@
 define([
 	'underscore',
 	'jquery',
-], function(_, $) {
+	'models/qrcode',
+], function(_, $, qrcode) {
 	return window.dialogs = dialogs = {
+		dataGetter: function(text, title, callback, callback2) {
+			try {
+				$('#dialog-data-getter').dialog('destroy');
+			} catch(err){
+
+			}
+
+			$( '#dialogs' ).html('\
+				<div id="dialog-data-getter" title="' + title + '">'
+
+					+ text +
+
+					'<div  style="width: 340px; height: 300px" id=video-display-window>\
+					</div>\
+					<div id="qr-status-tx"></div>\
+				</div>'
+			);
+			var opt = {
+				autoOpen: false,
+				modal: false,
+				width: 420,
+				height:420,
+				hide:'fade',
+				show:'fade'
+			};
+			$('#dialog-data-getter').dialog(opt);
+			$('#dialog-data-getter').css({
+				'border': '1px solid #ccec8c',
+				'background':'#ccec8c', 
+				'border': '2px solid #ccec8c', 
+				'color': '#000000', 
+				'title': 'Details',
+				'hide': { effect: "fade", duration: 2000 }
+			});
+			$('#dialog-data-getter').dialog('open')
+			//video
+			$('div[id=video-display-window]').html5_qrcode(function(code){
+				if (callback(code) == true) {
+					localMediaStream.stop();
+					localMediaStream.src = null;
+					localMediaStream.mozSrcObject = null;
+					localMediaStream = null;
+					setTimeout(function(){
+						$('#dialog-data-getter').dialog('destroy');
+						$('#dialog-data-getter').empty();
+					}, 2000);
+					$('#dialog-data-getter').append('<h4 style="position:absolute;top:100px;color:red;word-break:break-all">' + code + '</h4>');
+					callback2(code);			
+				}
+			},
+			function(error) {
+				console.log('error');
+			}, 
+			function(error) {
+				console.log('error');
+			});
+
+			$('[title=Close]').click(function(){
+				if (typeof(localMediaStream) != 'undefined' && localMediaStream) {
+					localMediaStream.stop();
+					localMediaStream.src = null;
+					localMediaStream.mozSrcObject = null;
+					localMediaStream = null;
+				}
+			})
+		},
+
 		dialogQrCode: function(data, text, title, extraSize, QRDataSize) {
 			var extraSize = extraSize ? extraSize : 0 ;
 			if(!data) {
@@ -41,8 +109,8 @@ define([
 			var opt = {
 				autoOpen: false,
 				modal: false,
-				width: 400 + extraSize,
-				height:450 + extraSize,
+				width: 420 + extraSize,
+				height:540 + extraSize,
 				hide: { effect: "fade", duration: 400 },
 				show: { effect: "fade", duration: 400 }
 			};
@@ -54,10 +122,11 @@ define([
 				'border': '2px solid #ccec8c', 
 				'color': '#000000', 
 				'title': 'Details',
-				//'font-weight' : ''
+				'hide': { effect: "fade", duration: 2000 }
 			});
 			$('#dialog-qrcode').dialog('open')
 			$('[role=dialog]').addClass('hidden-print')
+			$('canvas').css('border','20px solid').css('border-color','white');
 
 		},
 
@@ -118,7 +187,7 @@ define([
 			var opt = {
 				autoOpen: false,
 				modal: false,
-				width: 400,
+				width: 420,
 				height:500 + 10 * dataArray.length,
 				hide: { effect: "fade", duration: 400 },
 				show: { effect: "fade", duration: 400 }
@@ -127,15 +196,15 @@ define([
 			$('#qrcode-display-window').append('<h2>Data</h2><h5 style=word-break:break-all>' + dataArray.join('</br></br>') + '</h5>');
 			$('#dialog-qrcodes').dialog(opt);
 			$('#dialog-qrcodes').css({
-				'border': '1px solid #ccec8c',
-				'background':'#ccec8c', 
-				'border': '2px solid #ccec8c', 
-				'color': '#000000', 
-				'title': 'Details',
-				'hide': { effect: "fade", duration: 2000 }
+					'border': '1px solid #ccec8c',
+					'background':'#ccec8c', 
+					'border': '2px solid #ccec8c', 
+					'color': '#000000', 
+					'title': 'Details',
+					'hide': { effect: "fade", duration: 2000 }
 			});
 			$('#dialog-qrcodes').dialog('open')//.parent().effect('slide');
 			$('[role=dialog]').addClass('hidden-print')
 		}
 	}
-)
+})

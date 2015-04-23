@@ -3,7 +3,8 @@ define([
   'underscore',
   'jquery',
   'qrcode',
-], function(Backbone, _, $, html5_qrcode) {
+  'models/dialogs'
+], function(Backbone, _, $, html5_qrcode, Dialogs) {
   var QRSIZE = 300;
   var qrShown = 0;
   var checking = false;
@@ -46,10 +47,73 @@ define([
       'click li[name=btn-show-advanced]' : 'showAdvanced',
       'keyup input[name=tinyurl]' : 'loadTinyButton',
       'click button[name=load-data]' : 'loadTiny',
-      'click button[name=save-data]' : 'saveData'
+      'click button[name=save-data]' : 'saveData',
+      'click [name=btn-show-tiny-url]' : 'tinyUrlShow',
+      'click [name=btn-validate-transaction]' : 'validateTransaction',
+      'click button[name=btn-sign-mobile]': 'signMobile',
+      'click button[name=btn-sign-computer]': 'signComputer'
     },
 
-    dataGetter: function(text, title, ifTrue, doThat) {
+    signComputer: function() {
+      this.model.multiSign('computer', $('input[name=passphrase]').val(), $('input[name=salt]').val());
+      var master = this;
+      //function(text, title, callback, callback2)
+      var callback2 = function() {
+        console.log(master.model.signatures);
+        master.model.buildMultisig();
+      }
+      
+      var callback = function(code) {
+        try {
+          code = code.split(',');
+        } catch(err) {
+          console.log(err);
+          return false
+        }
+        console.log(code);
+
+        _.each(code,function(signature,index){
+          if (!cryptoscrypt.validScript(signature)) {
+            return false
+          }
+        })
+        master.model.signatures.mobile = code;
+        return true
+        //this.model.multiSign($('input[name=passphrase]').val(),$('input[name=salt]').val);
+      }
+
+      Dialogs.dataGetter('follow the link ' + this.model.tinyLink + 'on your mobile phone and scan the resulting QR code here', 'Mobile phone\'s signature', callback, callback2);
+    },
+
+    signMobile: function() {
+      this.model.multiSign('mobile', $('input[name=passphrase]').val(), $('input[name=salt]').val);
+      //function(data, text, title, extraSize, QRDataSize)
+      Dialogs.dialogQrCode(this.model.signatures.mobile.toString(),'This is the mobile\'s signature. Scan it on your computer when asked','Mobile phone\'s signature')
+    },
+
+    validateTransaction: function() {
+      var master = this;
+      $('.groupeA').prop('disabled', true)
+      var def = $.Deferred();
+      this.saveData(def)
+
+      def.done(function(result){
+        master.model.tinyLink = result;
+        $('h4[name=link-phone]').css('display','block')
+        $('h4[name=link-phone]').html('<h4 style="color:red">Go to the following address on your phone : tinyurl.com/' + result + '</h4>');
+        $('h4[name=link-phone]').css('display','block');
+        $('[name=passphrase]').prop('disabled', false);
+        $('[name=salt]').prop('disabled', false);
+        $('button[name=btn-sign-computer]').prop('disabled', false);
+        $('button[name=btn-sign-computer]').css('display','block');
+      })
+    },
+
+    tinyUrlShow: function() {
+      $('div[name=tiny-url-tool]').toggle()
+    },
+
+    /*dataGetter: function(text, title, ifTrue, doThat) {
       $('#dialog-data-getter').dialog('destroy');
       $( '#dialogs' ).html('\
         <div id="dialog-data-getter" title="' + title + '">'
@@ -109,7 +173,7 @@ define([
           localMediaStream = null;
         }
       })
-    },
+    },*/
 
     loadTiny: function() {
       var master = this;
@@ -162,20 +226,22 @@ define([
       })
     },
 
-    saveData: function() {
-      console.log('hop');
+    saveData: function(def) {
       var success = function(data) {
         console.log(data);
         var dataArray = data.split('/');
         $('input[name=tinyurl]').val(dataArray[dataArray.length - 1])
+        try {
+          def.resolve(dataArray[dataArray.length - 1])
+        } catch(err) {
+        }
+        return def
       }
-
-      console.log(this.model.exportLinkDataForTinyUrl())
       
-      mink = this.model.exportLinkDataForTinyUrl() + '#'
-      var link = 'http://easy-btc.org/index.html?data=' + mink ;
+      mink = this.model.exportLinkDataForTinyUrl() + '#'+ (this.model.tfa ? 'tfaspend' : 'transaction');
+      var link = 'http://easy-btc.org/index?data=' + mink ;
       try { 
-        cryptoscrypt.getTinyURL(link, success);
+        return cryptoscrypt.getTinyURL(link, success);
       } catch(err) { 
         window.alert('There was an error, probably too much data for tinyURL');
       }
@@ -193,9 +259,7 @@ define([
     },
 
     showAdvanced: function() {
-
       this.model.advanced = !this.model.advanced;
-      console.log(this.model.advanced);
       this.render();
     },
 
@@ -279,7 +343,7 @@ define([
       </br></br>This is the hash for all the data : </br> ' + '<a style="color:red">' + hash + '</a></br>You can use it to double check that all the data are the same on different devices</br></br> Use tools/import data to transfer the data using the following QRCodes:</br></br>'
       var title = 'Data Link';
       var data = this.model.export();
-      this.dialogQrCodes(data, tex, title);
+      Dialogs.dialogQrCodes(data, tex, title);
     },
 
     drawExportQrcode: function(a) {
@@ -320,7 +384,7 @@ define([
       var master = this;
       this.model.expectedField = ev.currentTarget.name == 'btn-scan-from' ? 'from' : $(ev.currentTarget).parents('.addressTo').attr('dataId')
       ifTrue = function(data) {
-        code = cryptoscrypt.findBtcAddress(data);
+        code = master.tfa ? (cryptoscrypt.validAddress(cryptoscrypt.getMultisigAddressFromRedeemscript(data)) ? data : '') : cryptoscrypt.findBtcAddress(data);
         return master.model.import(code)
       };
 
@@ -328,7 +392,7 @@ define([
         master.render();
       };
 
-      this.dataGetter('Import an address', 'Import BTC Address', ifTrue, doThat)
+      Dialogs.dataGetter('Import an address', 'Import BTC Address', ifTrue, doThat)
     },
 
     import: function(ev) {
@@ -355,37 +419,9 @@ define([
         master.render();
       }
 
-      this.dataGetter('Import a Full Transaction', 'Import Transaction', ifTrue, doThat)
+      Dialogs.dataGetter('Import a Full Transaction', 'Import Transaction', ifTrue, doThat)
 
-      /*
-      this.model.showImportQR = !this.model.showImportQR;
-      this.render();
-      if (!this.model.showImportQR) {
-        return
-      };
-      var master = this;
-      this.model.newImport();
-      $('.qr-reader').html5_qrcode(
-        function(code) {
-          console.log(code);
-          code = cryptoscrypt.findBtcAddress(code);
-          console.log(code);
-          if (master.model.import(code, master.model.expectedField)) {
-            master.model.showImportQR = false;
-            master.render();
-          } else {
-            console.log($('.qr-status', master.el));
-            $('.qr-status', master.el).html("Got " + master.model.qrParts + ' out of ' + master.model.qrTotal + ' codes.');
-          }
-        }, function(error) {
-          console.log('error');
-        }, function(error) {
-          console.log('error');
-        }
-      );
-    */
     },
-
 
     successClass: function(address) {
       if (cryptoscrypt.validAddress(address)) {
@@ -395,13 +431,12 @@ define([
       }
     },
 
-
     changeFeeMode: function() {
       this.model.changeFeeMode();
       this.updateFee();
       this.render();
     },
-
+/*
     dialogQrCodes: function(dataArray, text, title, QRDataSize, comments) {
       $('div[class=visible-print]').html('');
         //dataArray = ['zerzerzer','zfizuoizeuroizeru','jozeirjzoeiruzeroziu']
@@ -478,7 +513,7 @@ define([
       $('#dialog-qrcodes').dialog('open')//.parent().effect('slide');
       $('[role=dialog]').addClass('hidden-print')
     },
-
+*/
     signChain: function() {
 
       var master = this;
@@ -502,7 +537,7 @@ define([
           '</br><h6>Passphrase: your passphrase + ' + (i + 1) : '') + '</br>'}  );
         /*var commentsRecovery = Array.apply(null, Array(Math.ceil(master.model.balance / master.model.recipients[0].amount))).map(function(x, i) { return 'Recovery for Tx#' + (1 + i) +
         '</br>This will transfer back from ' + result.changeAddresses[i] + ' to ' + master.model.from})*/
-        master.dialogQrCodes(result.results, text, title, 300, comments);
+        Dialogs.dialogQrCodes(result.results, text, title, 300, comments);
       };
 
       var text = '..........Please wait, this should take few seconds on a normal computer..........';
@@ -525,34 +560,39 @@ define([
       var passphrase = $('input[name=passphrase]', master.$el).val();
       var salt = $('input[name=salt]', master.$el).val();
       var from = $('input[name=from]', master.$el).val();
-      _.each(cryptoscrypt.brainwallets(passphrase),function(pass, index) {
-        console.log(pass.pub.getAddress().toString())
-        if (pass.pub.getAddress().toString() == from) {
-          passphrase = pass.toWIF();
+
+      if (this.tfa == false) {
+        _.each(cryptoscrypt.brainwallets(passphrase),function(pass, index) {
+          console.log(pass.pub.getAddress().toString())
+          if (pass.pub.getAddress().toString() == from) {
+            passphrase = pass.toWIF();
+          };
+        });
+        console.log(passphrase);
+
+        dosign = function(ev) {
+          master.model.sign(passphrase, salt);
+          if (master.model.from != master.model.signAddress) {
+            alert("the signature is invalid");
+          }
+          master.render();
         };
-      });
-      console.log(passphrase);
 
-      dosign = function(ev) {
-        master.model.sign(passphrase, salt);
-        if (master.model.from != master.model.signAddress) {
-          alert("the signature is invalid");
-        }
-        master.render();
-      };
+        var text = '..........Please wait, this should take few seconds on a normal computer..........';
+        $('div[id=please-wait]', this.$el).html('<h3 id="please-wait" style="text-center">' + text + '</h3>');
 
-      var text = '..........Please wait, this should take few seconds on a normal computer..........';
-      $('div[id=please-wait]', this.$el).html('<h3 id="please-wait" style="text-center">' + text + '</h3>');
+        setTimeout(
+          dosign
+        ,100);
 
-      setTimeout(
-        dosign
-      ,100);
+        setTimeout(
+          function() {
+            $('div[id=please-wait]', this.$el).html('')
+          }
+        ,200);
+      } else {
 
-      setTimeout(
-        function() {
-          $('div[id=please-wait]', this.$el).html('')
-        }
-      ,200);
+      }
 
     },
 
@@ -568,15 +608,32 @@ define([
       if (purpose == 'chain') {
         this.model.advanced = true;
       }
+      if (purpose == 'tfa') {
+        this.model.tfa = true;
+      }
       var data = this.getParameterByName('data');
+      this.render();
       if (data) {
         this.model.importData(data);
+        if (this.model.tfa) {
+          $('div[name=signature]').parent().prepend('<h4 style=color:red>Use your 2FA mobile passphrase </br>It is recommended to be in airplane mode during the process, close your browser and restart your phone before going online again.</br>Also, avoid reusing the same address.</h4>')
+          $('div[name=transaction]').css('display','none')
+          $('button[name=btn-sign]').css('display','none')
+          $('input[name=passphrase]').prop('disabled',false)
+          $('input[name=salt]').prop('disabled',false)
+          $('button[name=btn-sign-mobile]').css('display','block')
+        } else {
+        }
+      } else {
+        if (this.model.tfa) {
+          $('button[name=btn-sign-computer]').css('display','block')
+        }
       }
-      this.render();
+
     },
 
     render: function() {
-
+      this.model.testtt();
       $('Title').html('EasyBTC Send Bitcoin');
       this.model.checking = false;
       if (typeof(localMediaStream) != 'undefined' && localMediaStream) {
@@ -700,7 +757,7 @@ define([
       var fieldEntry = ev.currentTarget.value.trim();
 
       //Initialize if nothing is entered
-
+//example of redeemscript 5241043710152c7e4130fc188a4f655d90a535d3cab2609a633af8bc62d9b41dc89ea52ab95b28b05d47ac52c7bdf39ea7b32c3786de67816f0ce2699d42b5350db5164104ce67436ba03c7f0dff6a55cbf1af952e966c92282ed530186f72384683a4f8f0e856fc8cb5e6e711d7f0c4dccbd4d40fd30bb252d75035f18555aedb917b34a352ae
       if ((fieldValue == '') & (fieldName == 'sender')) {
         this.model.from = '';
         this.model.thumbFrom = '';
@@ -728,17 +785,17 @@ define([
 
       this.model.lookup(fieldName,recipientId,fieldEntry).done(function(){
 
-          if (ev.currentTarget.name == 'sender') {
-            master.model.updateBalance().done(function() {
-            master.renderFrom();
-            master.updateFee();
-            }).fail(function() {console.log('problem')});
-          };
+        if (ev.currentTarget.name == 'sender') {
+          master.model.updateBalance().done(function() {
+          master.renderFrom();
+          master.updateFee();
+          }).fail(function() {console.log('problem')});
+        };
 
-          if (ev.currentTarget.name == 'to') {
-            master.renderAddressTo(recipientId);
-            master.renderThumbTo(recipientId);
-          };
+        if (ev.currentTarget.name == 'to') {
+          master.renderAddressTo(recipientId);
+          master.renderThumbTo(recipientId);
+        };
 
       }).fail(function(){
         master.render()
