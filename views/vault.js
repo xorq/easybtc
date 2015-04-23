@@ -49,21 +49,28 @@ define([
 			var callback2 = function() {
 				//function(data, text, title, extraSize, QRDataSize)
 				var passphrase = $('input[name=passphrase]', master.$el).val()
-				var salt = $('input[name=passphrase]', master.$el).val()
+				var salt = '' + $('input[name=email]', master.$el).val()
 				if (cryptoscrypt.validPkey(master.passphrase)) { 
 					return 
 				};
+				console.log(passphrase);
+				console.log(salt);
+				
 				vaultParts.pubkeyComputer = cryptoscrypt.validPkey(master.passphrase) ? cryptoscrypt.pkeyToPubKey(master.passphrase) : cryptoscrypt.warp(
-					passphrase, 
-					salt
+					$('input[name=passphrase]', master.$el).val(), 
+					$('input[name=email]', master.$el).val()
 				)[2];
+
+				console.log(vaultParts);
+
 				if (vaultParts.pubkeyComputer == vaultParts.pubkeyMobile) {
 					window.alert('Your Computer\'s public key appears to be the same as your mobile\'s, you should have different passphrases on each devices. Process aborted')
 					return
 				}
+				console.log(vaultParts)
 				multisig = cryptoscrypt.getMultisigAddress([vaultParts.pubkeyComputer, vaultParts.pubkeyMobile], 2)
 
-				Dialogs.dialogQrCode(multisig.redeemscript, '<h2> Success !</h2>This QR Code contains your 2FA Bitcoin Address.</br>You will need your mobile and your computer to spend from it</br>Do save the data in this QR Code and use the address to send funds to the ZFA Vault.<h4>' + multisig.address + '</h4>', '2FA bitcoin address')
+				Dialogs.dialogQrCode(multisig.redeemscript, '<h2> Success !</h2>This QR Code contains your 2FA Bitcoin Address.</br>You will need your mobile and your computer to spend from it</br>Do save the data in this QR Code and use the address to send funds to the 2FA Vault.<h4>' + multisig.address + '</h4>', '2FA bitcoin address')
 			}
 			//function(text, title, callback, callback2)
 			Dialogs.dataGetter('Scan the QRcode provided by your mobile device here </br><h6>(Of course, your passphrase should be different on each devices)</h6>', 'Mobile Data', callback, callback2);
