@@ -16,11 +16,14 @@ define([
       $('div[id=contents]').html('<div class="col-xs-12">\
         <h3 class="text-center">Welcome to Easy-BTC.org, a bitcoin self-banking toolkit</h3>\
         </div>\
-        <h4>Warp Vault : Creates a <a href="https://keybase.io/warp">Warp Wallet</a></h4>\
-        <h4>Warp Spend : Spends from a Warp Wallet</h4>\
-        <h4>Receive : Simply prepares a QRCODE for receiving to a bitcoin address.</a></h4>\
-        <h4>Multisig : Creates a mulitisig and spend from it</h4>\
-        <h4>Chain : Creates a chain of transaction from a given Vault to a given address, so that you can spend from your vault without getting offline everytime</h4>\
+        <h5>Warp Vault : Creates a <a href="https://keybase.io/warp">Warp Wallet</a></h5>\
+        <h5>Warp Spend : Spends from a Warp Wallet</h5>\
+        <h5>2FA Vault : Create a 2FA bitcoin Vault with your mobile phone</h5>\
+        <h5>2FA Vault : Spend from a 2FA bitcoin Vault</h5>\
+        <h5>Receive : Simply prepares a QRCODE for receiving to a bitcoin address.</a></h5>\
+        <h5>Multisig : Creates a mulitisig and spend from it</h5>\
+        <h5>Chain : Creates a chain of transaction from a given Vault to a given address, so that you can spend from your vault without getting offline everytime</h5>\
+        <h5>Open source ! View on <a href="http://www.github.com/xorq/easybtc">github</a></h5>\
         ')
     }, 
 

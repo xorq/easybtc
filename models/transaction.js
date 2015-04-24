@@ -110,6 +110,7 @@
 				}
 			})*/
 			var result = txb.build().toHex();
+			return result;
 			console.log(result);
 		}
 
@@ -641,7 +642,7 @@
 			
 			var successFunction = function(data) {
 				master.unspents = data.data.outputs;
-				master.unspents = [{"transaction_hash":"7f5683a5ffbfa133867a9e72a3fc92ad35f1c1079d285154af8c619790b4f161","value":32916835,"transaction_index":1}];
+				//master.unspents = [{"transaction_hash":"7f5683a5ffbfa133867a9e72a3fc92ad35f1c1079d285154af8c619790b4f161","value":32916835,"transaction_index":1}];
 				if ((master.unspents[0]) && master.unspents[0].value) {
 					master.balance = cryptoscrypt.sumArray(_.pluck(master.unspents, 'value'))
 				}

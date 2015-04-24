@@ -60,7 +60,20 @@ define([
       //function(text, title, callback, callback2)
       var callback2 = function() {
         console.log(master.model.signatures);
-        master.model.buildMultisig();
+        title = 'Signed Multisig';
+        text = 'You can verify and push this transaction on <a href=http://blockr.io/tx/push>blockr.io</a></br>\
+        or you can push it directly with this button :</br></br>\
+        <button class="btn btn-danger" name="pushTx">Push</button></br></br>';
+        data = master.model.buildMultisig();
+        dialogs.dialogQrCode(data, text, title, 50, 850);
+        $('button[name=pushTx]').click(function(){
+          var confirm = window.confirm('Are you absolutely sure ? Bitcoin Transactions cannot be reversed ! Continue at your own risks!')
+          if (confirm == true) {
+            cryptoscrypt.pushTx(data);
+          } else {
+            window.alert('Push cancelled');
+          }
+        })
       }
       
       var callback = function(code) {
