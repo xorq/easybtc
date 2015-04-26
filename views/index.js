@@ -65,6 +65,7 @@ define([
         or you can push it directly with this button :</br></br>\
         <button class="btn btn-danger" name="pushTx">Push</button></br></br>';
         data = master.model.buildMultisig();
+        //function(data, text, title, extraSize, QRDataSize)
         dialogs.dialogQrCode(data, text, title, 50, 850);
         $('button[name=pushTx]').click(function(){
           var confirm = window.confirm('Are you absolutely sure ? Bitcoin Transactions cannot be reversed ! Continue at your own risks!')
@@ -95,7 +96,7 @@ define([
         //this.model.multiSign($('input[name=passphrase]').val(),$('input[name=salt]').val);
       }
 
-      Dialogs.dataGetter('follow the link ' + this.model.tinyLink + 'on your mobile phone and scan the resulting QR code here', 'Mobile phone\'s signature', callback, callback2);
+      Dialogs.dataGetter('follow the link tinyurl.com/' + this.model.tinyLink + ' on your mobile phone and scan the resulting QR code here', 'Mobile phone\'s signature', callback, callback2);
     },
 
     signMobile: function() {
@@ -108,18 +109,24 @@ define([
       var master = this;
       $('.groupeA').prop('disabled', true)
       var def = $.Deferred();
-      this.saveData(def)
+      var mink = this.model.exportLinkDataForTinyUrl() + '#'+ (this.model.tfa ? 'tfaspend' : 'transaction');
+      var link = 'http://easy-btc.org/index.html?data=' + mink ;
 
-      def.done(function(result){
-        master.model.tinyLink = result;
-        $('h4[name=link-phone]').css('display','block')
-        $('h4[name=link-phone]').html('<h4 style="color:red">Go to the following address on your phone : tinyurl.com/' + result + '</h4>');
-        $('h4[name=link-phone]').css('display','block');
-        $('[name=passphrase]').prop('disabled', false);
-        $('[name=salt]').prop('disabled', false);
-        $('button[name=btn-sign-computer]').prop('disabled', false);
-        $('button[name=btn-sign-computer]').css('display','block');
-      })
+      //def.done(function(result){
+
+      //master.model.tinyLink = result[0];
+      $('h4[name=link-phone]').css('display','block')
+      //$('h4[name=link-phone]').html('<h4 style="color:red">Go to the following address on your phone : tinyurl.com/' + result + '</h4>');
+      $('h4[name=link-phone]').css('display','block');
+      $('[name=passphrase]').prop('disabled', false);
+      $('[name=salt]').prop('disabled', false);
+      $('button[name=btn-sign-computer]').prop('disabled', false);
+      $('button[name=btn-sign-computer]').css('display','block');
+      Dialogs.dialogQrCode(link, 'Go to this URL with your phone', 'Scan with phone')
+      /*tinyurl.com/' + (result[0].split('/')[result[0].split('/').length-1]).toUpperCase()*/
+      //})
+
+
     },
 
     tinyUrlShow: function() {
@@ -235,7 +242,7 @@ define([
           console.log(data)
           master.model.importData(data);
         }
-        master.render();
+        master.init();
       })
     },
 
@@ -245,14 +252,14 @@ define([
         var dataArray = data.split('/');
         $('input[name=tinyurl]').val(dataArray[dataArray.length - 1])
         try {
-          def.resolve(dataArray[dataArray.length - 1])
+          def.resolve([dataArray[dataArray.length - 1], link])
         } catch(err) {
         }
         return def
       }
       
-      mink = this.model.exportLinkDataForTinyUrl() + '#'+ (this.model.tfa ? 'tfaspend' : 'transaction');
-      var link = 'http://easy-btc.org/index?data=' + mink ;
+      var mink = this.model.exportLinkDataForTinyUrl() + '#'+ (this.model.tfa ? 'tfaspend' : 'transaction');
+      var link = 'http://easy-btc.org/index.html?data=' + mink ;
       try { 
         return cryptoscrypt.getTinyURL(link, success);
       } catch(err) { 
@@ -273,7 +280,7 @@ define([
 
     showAdvanced: function() {
       this.model.advanced = !this.model.advanced;
-      this.render();
+      this.init();
     },
 
     loadNext: function() {
@@ -282,7 +289,7 @@ define([
         this.model.thumbFrom = this.model.recipients[0].thumb;
         this.model.importData(this.model.nextData());
         this.model.recipients[0].address = from;
-        this.render();
+        this.init();
       } else {
         window.alert('the transaction needs to be signed first');
       }
@@ -330,23 +337,23 @@ define([
 
     guidanceToggle: function() {
       this.model.guidance = this.model.guidance == false && true;
-      this.render();
+      this.init();
 
     },
 
     guidanceTails: function() {
       this.model.guidance = 'tails'
-      this.render();
+      this.init();
     },
 
     guidanceDediated: function() {
       this.model.guidance = 'dedicated'
-      this.render();
+      this.init();
     },
 
     guidanceOff: function() {
       this.model.guidance = ''
-      this.render();
+      this.init();
     },
 
     export: function() {
@@ -376,7 +383,7 @@ define([
 
     clearExport: function() {
       $('div[name=exportQrcode]', this.$el).attr('style','dislpay:none');
-      this.render();
+      this.init();
     },
 
 
@@ -402,7 +409,7 @@ define([
       };
 
       doThat = function() {
-        master.render();
+        master.init();
       };
 
       Dialogs.dataGetter('Import an address', 'Import BTC Address', ifTrue, doThat)
@@ -429,7 +436,7 @@ define([
       }
 
       doThat = function() {
-        master.render();
+        master.init();
       }
 
       Dialogs.dataGetter('Import a Full Transaction', 'Import Transaction', ifTrue, doThat)
@@ -447,7 +454,7 @@ define([
     changeFeeMode: function() {
       this.model.changeFeeMode();
       this.updateFee();
-      this.render();
+      this.init();
     },
 /*
     dialogQrCodes: function(dataArray, text, title, QRDataSize, comments) {
@@ -588,7 +595,7 @@ define([
           if (master.model.from != master.model.signAddress) {
             alert("the signature is invalid");
           }
-          master.render();
+          master.init();
         };
 
         var text = '..........Please wait, this should take few seconds on a normal computer..........';
@@ -617,9 +624,9 @@ define([
     },
 
     init: function(purpose) {
-      this.model.purpose = purpose;
+      this.model.purpose = purpose ? purpose : this.model.purpose;
       if (purpose == 'chain') {
-        this.model.advanced = true;
+        //this.model.advanced = false;
       }
       if (purpose == 'tfa') {
         this.model.tfa = true;
@@ -629,7 +636,7 @@ define([
       if (data) {
         this.model.importData(data);
         if (this.model.tfa) {
-          $('div[name=signature]').parent().prepend('<h4 style=color:red>Use your 2FA mobile passphrase </br>It is recommended to be in airplane mode during the process, close your browser and restart your phone before going online again.</br>Also, avoid reusing the same address.</h4>')
+          $('div[name=signature]').parent().prepend('<h4 style=color:red>Use your 2FA mobile passphrase </br>It is recommended to be in airplane mode during the process, then close your browser and restart your phone before going online again.</br>Also, avoid reusing the same address.</h4>')
           $('div[name=transaction]').css('display','none')
           $('button[name=btn-sign]').css('display','none')
           $('input[name=passphrase]').prop('disabled',false)
@@ -658,7 +665,6 @@ define([
 
       var master = this;
       this.$el.html(this.template(this.model.data()));
-      this.renderQrCode();
       this.updateTotal();
       $('div[id=contents]').css('border','2px solid black');
     }, 
@@ -686,7 +692,7 @@ define([
       );
     },
 
-
+/*
     renderQrCode: function() {
       var qrSize = 600
       if (this.model.qrcode==''){ return };
@@ -702,7 +708,7 @@ define([
       });
 
       qrcode.makeCode(this.model.qrcode);
-    },
+    },*/
 
 
     updateTotal: function() {
@@ -725,7 +731,7 @@ define([
 
     putAll: function(ev) {
       this.model.putAll($(ev.currentTarget).parents('.row.addressTo').attr('dataId'));
-      this.render();
+      this.init();
     }, 
 
 
@@ -733,13 +739,13 @@ define([
       this.model.removeRecipient(
         $(ev.currentTarget).parents('.row.addressTo').attr('dataId')
       );
-      this.render();
+      this.init();
     },
 
 
     addOutput: function() {
       this.model.addRecipient();
-      this.render();
+      this.init();
     },
 
 
@@ -811,7 +817,7 @@ define([
         };
 
       }).fail(function(){
-        master.render()
+        master.init()
         $('div[id=iStatus]').html('<h4 style="color:red">You have to be online to fill the sending address field</h4>')
       })
     },

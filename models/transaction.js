@@ -32,14 +32,6 @@
 		
 
 		this.testtt = function() {
-			cryptoscrypt.pubkeyToAddress('04d9e0cb39d0672b99206f792db7a6ca6ffe3273a5d3bc3b96405a5cf40701f902d5291dba51567e48fae4c970fff325b5861bb7baedaac7b8008e6104ed26906e')
-			var data = '3045022100a7adb905d94fc7332b50f41c34ff9d199def9574064e205b69d83f0898ae4f8f02207b12eed47aad7d4f8b892b2cb53a40ea58196871f8975affe50b6c463db83f17'
-			console.log(
-				cryptoscrypt.validScript(data)
-			)
-			console.log(
-				cryptoscrypt.getAddressesFromRedeemscript('524104d9e0cb39d0672b99206f792db7a6ca6ffe3273a5d3bc3b96405a5cf40701f902d5291dba51567e48fae4c970fff325b5861bb7baedaac7b8008e6104ed26906e4104ffc46ca5879ade53a600edd155a44623a0ecc2801f37255c518e3f8b0410a794f3d1a211f8c578b6d6c089c0beb422cfc1b6f18299f7e9be35c82fe1d7f4cfb152ae')
-			)
 		}
 
 		this.buildMultisig = function() {

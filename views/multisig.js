@@ -53,7 +53,13 @@ define([
 			'keyup input[name=tinyurl]' : 'loadTiny',
 			'click button[name=reset]' : 'reset',
 			'click button[name=test]' : 'test',
-			'click [name=btn-show-tiny-url]' : 'tinyUrlShow'
+			'click [name=btn-show-tiny-url]' : 'tinyUrlShow',
+			'click div[name=multisig-address-top]' : 'showMultisigAddress'
+		},
+
+		showMultisigAddress: function() {
+			console.log('caca')
+			dialogs.dialogQrCode(this.model.multisig.address, 'Multisig Address', 'Multisig Address')
 		},
 
 		test: function() {
