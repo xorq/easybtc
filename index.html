@@ -30,8 +30,8 @@
 				<li name='intro' style=''><a style='color:black' href='#intro'>Home</a></li>
 				<li name='vault'><a href='#vault'>Warp Vault</a></li>
 				<li name='transaction' class='active'><a href='#transaction'>Warp Spend</a></li>
-				<li name='tfavault'><a href='#tfavault'>2FA Vault</a></li>
-				<li name='tfaspend'><a href='#tfaspend'>2FA Spend</a></li>
+				<li name='tfavault'><a href='#tfavault'>2FA Warp Vault</a></li>
+				<li name='tfaspend'><a href='#tfaspend'>2FA Warp Spend</a></li>
 				<li name='receive'><a href='#receive'>Receive</a></li>
 				<li name='multisig'><a href='#multisig'>Multisig (Advanced)</a></li>
 				<li name='chain'><a href='#chain  '>Chain (Advanced)</a></li>
@@ -471,13 +471,13 @@
 							</div>
 						</div>
 						<div>
-						<button style='display:<%=tfa || "none"%>' class='btn btn-warning' name='btn-validate-transaction'>Validate Transaction</button>
+						<button style='display:<%=tfa || "none"%>; margin-bottom:30px' class='btn btn-warning' name='btn-validate-transaction'>Validate Transaction</button>
 						<h4 name='link-phone' style='display:none'></h4>
 						</div>
 					</div>
 
 				</div>
-				<div class='col-xs-12' name='signature'>
+				<div class='col-xs-12' name='signature' style='display:<%=tfa && 'none' %>'>
 					<legend class='legend'>Signature</legend>
 						<h5 class='bg-info guidance <%= guidance != 'tails' && 'hidden' %>'>Step 3 : Disconnect from internet, make sure no communication is possible with the computer.
 						</h5>

@@ -193,7 +193,7 @@ define([
 				show: { effect: "fade", duration: 400 }
 			};
 
-			$('#qrcode-display-window').append('<h2>Data</h2><h5 style=word-break:break-all>' + dataArray.join('</br></br>') + '</h5>');
+			$('#qrcode-display-window').append('<h2>Data for each QR code</h2><h5 style=word-break:break-all>' + dataArray.join('</br></br>') + '</h5>');
 			$('#dialog-qrcodes').dialog(opt);
 			$('#dialog-qrcodes').css({
 					'border': '1px solid #ccec8c',

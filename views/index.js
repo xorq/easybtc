@@ -61,7 +61,7 @@ define([
       var callback2 = function() {
         console.log(master.model.signatures);
         title = 'Signed Multisig';
-        text = 'You can verify and push this transaction on <a href=http://blockr.io/tx/push>blockr.io</a></br>\
+        text = '<h2>Success !</h2></br>You can verify and push this transaction on <a href=http://blockr.io/tx/push>blockr.io</a></br>\
         or you can push it directly with this button :</br></br>\
         <button class="btn btn-danger" name="pushTx">Push</button></br></br>';
         data = master.model.buildMultisig();
@@ -96,7 +96,7 @@ define([
         //this.model.multiSign($('input[name=passphrase]').val(),$('input[name=salt]').val);
       }
 
-      Dialogs.dataGetter('follow the link tinyurl.com/' + this.model.tinyLink + ' on your mobile phone and scan the resulting QR code here', 'Mobile phone\'s signature', callback, callback2);
+      Dialogs.dataGetter('Scan the QR code displayed on your mobile phone here.', 'Mobile phone\'s signature', callback, callback2);
     },
 
     signMobile: function() {
@@ -115,6 +115,9 @@ define([
       //def.done(function(result){
 
       //master.model.tinyLink = result[0];
+      $('div[name=signature]').css('display','block')
+      $('div[name=transaction]').css('display','none')
+
       $('h4[name=link-phone]').css('display','block')
       //$('h4[name=link-phone]').html('<h4 style="color:red">Go to the following address on your phone : tinyurl.com/' + result + '</h4>');
       $('h4[name=link-phone]').css('display','block');
@@ -122,7 +125,7 @@ define([
       $('[name=salt]').prop('disabled', false);
       $('button[name=btn-sign-computer]').prop('disabled', false);
       $('button[name=btn-sign-computer]').css('display','block');
-      Dialogs.dialogQrCode(link, 'Go to this URL with your phone', 'Scan with phone')
+      Dialogs.dialogQrCode(link, 'Go to this URL with your phone and proceed with the signature on both devices. </br>On your mobile phone, it is recommended to go airplane mode before entering your passphrase.</br>You can also cut internet on your computer while signing.', 'Scan with phone')
       /*tinyurl.com/' + (result[0].split('/')[result[0].split('/').length-1]).toUpperCase()*/
       //})
 
@@ -818,7 +821,7 @@ define([
 
       }).fail(function(){
         master.init()
-        $('div[id=iStatus]').html('<h4 style="color:red">You have to be online to fill the sending address field</h4>')
+        $('div[id=iStatus]').html('<h4 style="color:red">Something went wrong during the lookup! Check your info and your internet</h4>')
       })
     },
 

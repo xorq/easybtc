@@ -22,7 +22,7 @@ define([
         <h5>2FA Vault : Spend from a 2FA bitcoin Vault</h5>\
         <h5>Receive : Simply prepares a QRCODE for receiving to a bitcoin address.</a></h5>\
         <h5>Multisig : Creates a mulitisig and spends from it</h5>\
-        <h5>Chain : Creates a chain of transaction from a given Vault to a given address, so that you can spend from your vault without getting offline everytime</h5>\
+        <h5>Chain : Creates a chain of transactions from a given Vault to a given address, so that you can spend from your vault without getting offline everytime</h5>\
         <h5>Open source ! View on <a href="http://www.github.com/xorq/easybtc">github</a></h5>\
         ')
     }, 

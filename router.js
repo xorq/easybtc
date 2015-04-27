@@ -20,7 +20,7 @@ define([
       'receive' : 'receive',
       'multisig' : 'multisig',
       'chain' : 'chain',
-      'intro' : 'intro'
+      '*path' : 'intro'
     },
     currentView: false,
 

@@ -29,7 +29,7 @@ define([
 			var passphrase = $('input[name=passphrase]', this.$el).val()
 			var salt = $('input[name=passphrase]', this.$el).val()
 
-			var data = cryptoscrypt.validPkey(passphrase) ? cryptoscrypt.pkeyToPubKey(passphrase) : cryptoscrypt.warp(
+			var data = cryptoscrypt.validPkey(passphrase) ? cryptoscrypt.WIFToPubKey(passphrase) : cryptoscrypt.warp(
 					passphrase, 
 					salt
 				)[2];

@@ -85,6 +85,11 @@ define([
 			return Bitcoin.ECKey.fromWIF(pkey.toWIF()).pub.getAddress().toString();
 		},
 
+		WIFToPubKey: function(pkey) {
+			console.log(Bitcoin.ECKey.fromWIF(pkey).pub.toHex())
+			return Bitcoin.ECKey.fromWIF(pkey).pub.toHex();
+		},
+
 		pkeyToPubKey: function(pkey) {
 			return Bitcoin.ECKey.fromWIF(pkey.toWIF()).pub.getPubKey().toString();
 		},

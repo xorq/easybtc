@@ -54,12 +54,11 @@ define([
 			'click button[name=reset]' : 'reset',
 			'click button[name=test]' : 'test',
 			'click [name=btn-show-tiny-url]' : 'tinyUrlShow',
-			'click div[name=multisig-address-top]' : 'showMultisigAddress'
+			'click div[name=multisig-address]' : 'showMultisigAddress'
 		},
 
 		showMultisigAddress: function() {
-			console.log('caca')
-			dialogs.dialogQrCode(this.model.multisig.address, 'Multisig Address', 'Multisig Address')
+			dialogs.dialogQrCode(this.model.multisig.address, 'Multisig Address, for the redeemscript, go to Tools/Export Multisig Data' , 'Multisig Address')
 		},
 
 		test: function() {
