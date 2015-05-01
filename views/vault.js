@@ -70,7 +70,7 @@ define([
 				console.log(vaultParts)
 				multisig = cryptoscrypt.getMultisigAddress([vaultParts.pubkeyComputer, vaultParts.pubkeyMobile], 2)
 
-				Dialogs.dialogQrCode(multisig.redeemscript, '<h2> Success !</h2>This QR Code contains your 2FA Bitcoin Address.</br>You will need your mobile and your computer to spend from it</br>Do save the data in this QR Code and use the address to send funds to the 2FA Vault.<h4>' + multisig.address + '</h4>', '2FA bitcoin address')
+				Dialogs.dialogQrCode(multisig.redeemscript, '<h2> Success !</h2>This is your bitcoin address to your 2FA Vault: </h4><h4 style="color:red">' + multisig.address + '</h4> You will need your mobile and your computer\'s passphrases to spend from it. </br>This QR Code contains your 2FA Redeem Code.</br>Do save the data in this QR Code. You will need it on order to spend from your Vault</h4></br>', '2FA bitcoin address')
 			}
 			//function(text, title, callback, callback2)
 			Dialogs.dataGetter('Scan the QRcode provided by your mobile device here </br><h6>(Of course, your passphrase should be different on each devices)</h6>', 'Mobile Data', callback, callback2);

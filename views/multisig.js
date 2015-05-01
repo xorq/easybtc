@@ -32,7 +32,7 @@ define([
 			'change input[name=recipient-field]' : 'lookupRecipient',
 			'change input[name=amount-field]' : 'changedAmount',
 			'click button[name=btn-all]' : 'putAll',
-			'click [name=btn-export-tx]' : 'drawTxQr',
+			//'click [name=btn-export-tx]' : 'drawTxQr',
 			'click [name=btn-import-data]' : 'importQrTx',
 			//'click button[name=signature-button]' : 'renderSignature',
 			'click button[name=btn-signature]' : 'renderSignature',
@@ -58,7 +58,11 @@ define([
 		},
 
 		showMultisigAddress: function() {
-			dialogs.dialogQrCode(this.model.multisig.address, 'Multisig Address, for the redeemscript, go to Tools/Export Multisig Data' , 'Multisig Address')
+			var master = this;
+			dialogs.dialogQrCode(this.model.multisig.address, 'For the redeemscript, click this button: <button class="btn" name="show-redeemscript">Redeemscript</button></br></br>' , 'Multisig Address')
+			$('button[name=show-redeemscript]').click(function(){
+				dialogs.dialogQrCode(master.model.multisig.redeemscript, 'Your Redeemscript :', 'Redeemscript');
+			})		
 		},
 
 		test: function() {
@@ -484,7 +488,7 @@ define([
 			var link = window.location.pathname + '?data=' + this.model.exportLinkData() + '#multisig';
 			var hash = sjcl.codec.base64.fromBits(sjcl.hash.sha256.hash(JSON.stringify(this.model.exportLinkData()))).toString().slice(0,20);
 			var tex = 'This <a style="text-align:center" href=' + link + '>link</a> opens this page with all your data, including signatures.</a>\
-			</br></br>This is the hash for all the data : </br> ' + '<a style="color:red">' + hash + '</a></br>You can use it to double check that all the data are the same on different devices</br></br> Also, you can use tools/import data to transfer the data using the following QRCodes:</br></br>'
+			</br></br>This is the hash for all the data : </br> ' + '<a style="color:red">' + hash + '</a></br>You can use it to double check that all the data are the same on different devices</br></br> Also, you can use tools/import data to transfer the data using the following QRCodes:</br>And if you want the link in a single QR code, you can click this button: <button class="btn" name="show-link">Link Qr code</button></br>'
 			var title = 'Data Link';
 			var data = this.model.exportData();
 			dialogs.dialogQrCodes(data, tex, title);

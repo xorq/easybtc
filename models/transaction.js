@@ -34,13 +34,8 @@
 		this.testtt = function() {
 		}
 
-		this.buildMultisig = function() {
-			var master = this;
-			console.log(master.signatures);
-			var dummyPkey = Bitcoinjs.ECKey.fromWIF('5KYZdUEo39z3FPrtuX2QbbwGnNP5zTd7yyr2SC1j299sBCnWjss');
-			
-			// Unsigned tx
-			var tx = cryptoscrypt.buildTx(
+		this.buildMultisigTx = function() {
+			return cryptoscrypt.buildTx(
 				_.pluck(master.unspents, 'transaction_hash'),
 				_.pluck(master.unspents, 'transaction_index'),
 				_.pluck(master.unspents, 'value'),
@@ -49,6 +44,15 @@
 				_.pluck(master.recipients, 'amount'),
 				master.fee
 			);
+		}
+
+		this.buildMultisig = function() {
+			var master = this;
+			console.log(master.signatures);
+			var dummyPkey = Bitcoinjs.ECKey.fromWIF('5KYZdUEo39z3FPrtuX2QbbwGnNP5zTd7yyr2SC1j299sBCnWjss');
+			
+			// Unsigned tx
+			var tx = this.buildMultisigTx();
 			console.log(tx[0].toHex());
 			var rawTx = tx[0].toHex();
 
@@ -107,6 +111,17 @@
 		}
 
 		this.multiSign = function(device, passphrase, salt) {
+
+			var tx = cryptoscrypt.buildTx(
+				_.pluck(this.unspents, 'transaction_hash'),
+				_.pluck(this.unspents, 'transaction_index'),
+				_.pluck(this.unspents, 'value'),
+				_.pluck(this.recipients, 'address'),
+				cryptoscrypt.getMultisigAddressFromRedeemscript(this.redeemscript),
+				_.pluck(this.recipients, 'amount'),
+				this.fee
+			);
+
 			var warp = cryptoscrypt.warp(passphrase, salt)
 			var pkey = warp[0]
 			//Sign
@@ -119,15 +134,7 @@
 			console.log(this.recipients)
 			console.log(cryptoscrypt.getMultisigAddressFromRedeemscript(this.redeemscript))
 			// Build the unsigned transaction;
-			var tx = cryptoscrypt.buildTx(
-				_.pluck(this.unspents, 'transaction_hash'),
-				_.pluck(this.unspents, 'transaction_index'),
-				_.pluck(this.unspents, 'value'),
-				_.pluck(this.recipients, 'address'),
-				cryptoscrypt.getMultisigAddressFromRedeemscript(this.redeemscript),
-				_.pluck(this.recipients, 'amount'),
-				this.fee
-			);
+
 			this.rawTx = tx[0].toHex()
 			var tx = Bitcoinjs.Transaction.fromHex(tx[0].toHex());
 			var txb = Bitcoinjs.TransactionBuilder.fromTransaction(tx);

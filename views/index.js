@@ -106,6 +106,13 @@ define([
     },
 
     validateTransaction: function() {
+
+      try {
+        this.model.buildMultisigTx()
+      } catch(err) { 
+        window.alert('the transaction you entered seems to be invalid') ; return
+      };
+
       var master = this;
       $('.groupeA').prop('disabled', true)
       var def = $.Deferred();
@@ -125,7 +132,7 @@ define([
       $('[name=salt]').prop('disabled', false);
       $('button[name=btn-sign-computer]').prop('disabled', false);
       $('button[name=btn-sign-computer]').css('display','block');
-      Dialogs.dialogQrCode(link, 'Go to this URL with your phone and proceed with the signature on both devices. </br>On your mobile phone, it is recommended to go airplane mode before entering your passphrase.</br>You can also cut internet on your computer while signing.', 'Scan with phone')
+      Dialogs.dialogQrCode(link, 'Go to this URL with your phone and proceed with the signature on both devices. </br>On your mobile phone, it is recommended to go airplane mode before entering your passphrase.</br>You can also cut internet on your computer while signing (in which case you should restart before going back online, ideally using <a href="http://tails.boum.org/">Tails</a>.', 'Scan with phone')
       /*tinyurl.com/' + (result[0].split('/')[result[0].split('/').length-1]).toUpperCase()*/
       //})
 
@@ -579,12 +586,12 @@ define([
     },
 
     sign: function(ev) {
+
       var master = this;
       var passphrase = $('input[name=passphrase]', master.$el).val();
       var salt = $('input[name=salt]', master.$el).val();
       var from = $('input[name=from]', master.$el).val();
-
-      if (this.tfa == false) {
+      if (!this.model.tfa) {
         _.each(cryptoscrypt.brainwallets(passphrase),function(pass, index) {
           console.log(pass.pub.getAddress().toString())
           if (pass.pub.getAddress().toString() == from) {

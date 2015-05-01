@@ -241,7 +241,7 @@
 				<label for='sendingAddr'><%=tfa ? 'Sending 2FA Vault' : 'Sending Addresse'%></label>
 
 				<div class='row input-group hidden-xs' style='padding-left:15px'>
-					<input type='text' id='sendingAddr' tabindex='1' class='form-control groupeA' name='sender' placeholder='<%=tfa ? "2FA Vault" : "BTC address Onename"%>' value='<%= from %>'></input>
+					<input type='text' id='sendingAddr' tabindex='1' class='form-control groupeA' name='sender' placeholder='<%=tfa ? "2FA Redeem Code" : "BTC address Onename"%>' value='<%= from %>'></input>
 					<span class='form-control-feedback <%= cryptoscrypt.validAddress(from) ? 'glyphicon glyphicon-ok' : from ? 'glyphicon glyphicon-remove' : ''%>' name='glyphicon' id='glyphicon' style='left:-5px'></span>
 					<span class='input-group-btn'>
 						<button class='btn btn-default glyphicon glyphicon-camera groupeA' type='button' name='btn-scan-from'></button>
@@ -369,7 +369,7 @@
 							<label for='sendingAddr'><%=tfa ? 'Sending 2FA Vault' : 'Sending Addresse'%></label>
 
 							<div class='row input-group hidden-xs' style='padding-left:15px'>
-								<input type='text' id='sendingAddr' tabindex='1' class='form-control groupeA' name='sender' placeholder='<%=tfa ? "2FA Vault" : "BTC address Onename"%>' value='<%= from %>'></input>
+								<input type='text' id='sendingAddr' tabindex='1' class='form-control groupeA' name='sender' placeholder='<%=tfa ? "2FA Redeem Code" : "BTC address Onename"%>' value='<%= from %>'></input>
 								<span class='form-control-feedback <%= cryptoscrypt.validAddress(from) ? 'glyphicon glyphicon-ok' : from ? 'glyphicon glyphicon-remove' : ''%>' name='glyphicon' id='glyphicon' style='left:-5px'></span>
 								<span class='input-group-btn'>
 									<button class='btn btn-default glyphicon glyphicon-camera groupeA' type='button' name='btn-scan-from'></button>
@@ -477,7 +477,7 @@
 					</div>
 
 				</div>
-				<div class='col-xs-12' name='signature' style='display:<%=tfa && 'none' %>'>
+				<div class='col-xs-12' name='signature'>
 					<legend class='legend'>Signature</legend>
 						<h5 class='bg-info guidance <%= guidance != 'tails' && 'hidden' %>'>Step 3 : Disconnect from internet, make sure no communication is possible with the computer.
 						</h5>
