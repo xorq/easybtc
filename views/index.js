@@ -593,19 +593,32 @@ define([
       var from = $('input[name=from]', master.$el).val();
       if (!this.model.tfa) {
         _.each(cryptoscrypt.brainwallets(passphrase),function(pass, index) {
-          console.log(pass.pub.getAddress().toString())
           if (pass.pub.getAddress().toString() == from) {
             passphrase = pass.toWIF();
           };
         });
-        console.log(passphrase);
 
         dosign = function(ev) {
+
           master.model.sign(passphrase, salt);
           if (master.model.from != master.model.signAddress) {
             alert("the signature is invalid");
           }
           master.init();
+          title = 'Signed Transaction';
+          text = 'You can verify and push this transaction on <a href=http://blockr.io/tx/push>blockr.io</a></br>\
+          or you can push it directly with this button :</br></br>\
+          <button class="btn btn-danger" name="pushTx">Push</button></br></br>';
+          data = master.model.qrcode;
+          dialogs.dialogQrCode(data, text, title, 50, 850);
+          $('button[name=pushTx]').click(function(){
+            var confirm = window.confirm('Are you absolutely sure ? Bitcoin Transactions cannot be reversed ! Continue at your own risks!')
+            if (confirm == true) {
+              cryptoscrypt.pushTx(data);
+            } else {
+              window.alert('Push cancelled');
+            }
+          })
         };
 
         var text = '..........Please wait, this should take few seconds on a normal computer..........';
@@ -666,12 +679,12 @@ define([
       this.model.testtt();
       $('Title').html('EasyBTC Send Bitcoin');
       this.model.checking = false;
-      if (typeof(localMediaStream) != 'undefined' && localMediaStream) {
+      /*if (typeof(localMediaStream) != 'undefined' && localMediaStream) {
         localMediaStream.stop();
         localMediaStream.src = null;
         localMediaStream.mozSrcObject = null;
         localMediaStream = null;
-      } 
+      } */
 
       var master = this;
       this.$el.html(this.template(this.model.data()));
