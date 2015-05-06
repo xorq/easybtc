@@ -8,7 +8,6 @@ define([
 			try {
 				$('#dialog-data-getter').dialog('destroy');
 			} catch(err){
-
 			}
 
 			$( '#dialogs' ).html('\
@@ -114,7 +113,7 @@ define([
 				hide: { effect: "fade", duration: 400 },
 				show: { effect: "fade", duration: 400 }
 			};
-			$('#qrcode-display-window').append('<h2>Data</h2><h5 style="word-break:break-all; margin-right: 30px">' + data + '</h5>');
+			$('#qrcode-display-window').append('<h2>Data</h2><textarea cols="50" rows="' + (10 + data.length/50) + '"style="word-break:break-all; margin-right: 30px">' + data + '</textarea>');
 			$('#dialog-qrcode').dialog(opt);
 			$('#dialog-qrcode').css({
 				'border': '1px solid #ccec8c',

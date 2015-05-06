@@ -184,10 +184,16 @@
 				<div id='vault-warning'></div>
 				<div name='vault-tfa-text'></div>
 				<div class='form-group'>
-						<label for='passphrase'>Passphrase</label>
-						<input type='text' style='font-weight:bold' class='form-control' name='passphrase' id='passphrase' placeholder='Type your passphrase here' />
+					<label for='passphrase'>Passphrase</label>
+						<div class='input-group' style='padding-left:0px'>
+							<input type='text' style='font-weight:bold' class='form-control' name='passphrase' id='passphrase' placeholder='Type your passphrase here'>
+								<span class='input-group-btn'>
+								<button class='btn btn-default btn-random' type='button'>+1 random word</button>
+								</span>
+							</input>
+						</div>
 					</div>
-				<div class='row col-xs-12'>
+				<!--<div class='row col-xs-12'>
 				<label for='count_words'>Random words generator</label>
 				<div>
 					<select class='form-control col-xs-3' style='width:100px' name='count_words'>
@@ -202,15 +208,15 @@
 					</select>
 					<button type='button' class='col-xs-6 btn btn-primary btn-random' style='width:140px;margin-left:10px'>Random Words</button>
 				</div>
-				</div>
-				<div class='form-group' style='margin-top:90px'>
+				</div>-->
+				<div class='form-group' style='margin-top:0px'>
 					<label for='email'>Email (Optional)</label>
 					<input type='text' class='form-control' name='email' placeholder='Enter your email/salt here' />
 				</div>
 				<div id='pleaseWait'></div>
 				<div class='button-group'>
 					<button type='button' class='btn btn-primary btn-generate' style='font-size:14px;white-space: normal ; margin-top:20px;display:<%=tfa && 'none'%>'>Generate vault</button>
-					<button type='button' class='btn btn-primary btn-generate-computer' style='font-size:14px;white-space: normal ; margin-top:20px;display:<%=tfa || 'none'%>'>Computer</button>
+					<button type='button' class='btn btn-primary btn-generate-computer' style='font-size:14px;white-space: normal ; margin-top:20px;display:<%=(tfa && (mobile != "yes")) || 'none'%>'>Computer</button>
 					<button type='button' class="btn btn-warning btn-generate-mobile" style="font-size:14px;white-space: normal ; margin-top:20px;display:<%=tfa || 'none'%>">Mobile</button>
 				</div>
 				<div name='vault-tfa-content'></div>
@@ -237,7 +243,7 @@
 		</script>
 
 		<script type='text/template' id='indexViewFromTemplate'>
-			<div class='row col-sm-9 col-xs-12 form-group has-feedback input-prepend'>
+			<div class='row col-sm-9 col-xs-12 form-group has-feedback input-prepend <%=this.successClass(from) %>'>
 				<label for='sendingAddr'><%=tfa ? 'Sending 2FA Vault' : 'Sending Addresse'%></label>
 
 				<div class='row input-group hidden-xs' style='padding-left:15px'>
@@ -296,31 +302,21 @@
 		</script>
 
 		<script type='text/template' id='indexViewTemplate'>
-
-			<%
-			function successClass(address) {
-				if (cryptoscrypt.validAddress(address)) {
-					return 'has-success';
-				} else if (address) {
-					return 'has-error';
-				}
-			}
-			%>
 			<div class = 'col-xs-12' name='content'>
 			<form role='form col-xs-12' style='display:<%=tfa && "none"%>'>
 				<div class='dropdown col-xs-2' name='tools button-group'>
 					<button style='' type='button' data-toggle='dropdown' class='btn btn-success dropdown-toggle'>Tools <span class='caret'></span></button>
 					<ul class='dropdown-menu'>
-						<li name='btn-show-advanced'><a href='#'><%=advanced ? 'Hide' : 'Display'%> advanced options</a></li>
+						<li name='btn-show-advanced'><a href='#<%=purpose == "chain" ? "chain" : "transaction"%>'><%=advanced ? 'Hide' : 'Display'%> advanced options</a></li>
 						<li class='divider'></li>
-						<li name='btn-import'><a href='#'>Import QR code(s) for a transaction</a></li>
-						<li name='btn-export'><a href='#'>Export QR code(s) for this transaction</a></li>
+						<li name='btn-import'><a href='#<%=purpose == "chain" ? "chain" : "transaction"%>'>Import QR code(s) for a transaction</a></li>
+						<li name='btn-export'><a href='#<%=purpose == "chain" ? "chain" : "transaction"%>'>Export this transaction as QR code(s)</a></li>
 						<li class='divider'></li>
-						<li name='guidance-tails'><a href='#'>Guidance for using Tails</a></li>
-						<li name='guidance-dedicated'><a href='#'>Guidance for using a dedicated offline computer</a></li>
-						<li name='guidance-off'><a href='#'>Turn guidance off</a></li>
+						<li name='guidance-tails'><a href='#<%=purpose == "chain" ? "chain" : "transaction"%>'>Guidance for using Tails</a></li>
+						<li name='guidance-dedicated'><a href='#<%=purpose == "chain" ? "chain" : "transaction"%>'>Guidance for using a dedicated offline computer</a></li>
+						<li name='guidance-off'><a href='#<%=purpose == "chain" ? "chain" : "transaction"%>'>Turn guidance off</a></li>
 						<li class='divider'></li>
-						<li name='btn-show-tiny-url'><a href='#'>TinyURL export / import</a></li>
+						<li name='btn-show-tiny-url'><a href='#<%=purpose == "chain" ? "chain" : "transaction"%>'>TinyURL export / import</a></li>
 					</ul>
 				</div>
 				<div class='' name='btn-export' style='float:right'>
@@ -466,7 +462,7 @@
 						<div class='form-group col-xs-12 row'>
 							<label for='total'>Total</label>	
 							<div class='input-group col-xs-12' style='width:200px'>
-								<input type='text' name='total' class='form-control' id='total' readonly></input>
+								<input type='text' name='total' class='form-control' id='total' value=<%=total / 100000000%> readonly></input>
 								<span class='input-group-addon'>BTC</span>
 							</div>
 						</div>

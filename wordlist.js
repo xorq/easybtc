@@ -35,7 +35,7 @@ define([], function() {
 		random: function(num_words, min_word_length) {
 			// good API design - allow for defaults if they make sense, don't fail unexpectedly
 			if (typeof(num_words) == 'undefined') {
-				num_words = 4;
+				num_words = 1;
 			}
 
 			var words = '';

@@ -10,8 +10,6 @@ define([
   var checking = false;
   var IndexView = Backbone.View.extend({
     el: $('#contents'),
-    //testr:testr,
-    //model: Transaction,
     templateFrom: _.template($('#indexViewFromTemplate').text()),
     templateToAddressField: _.template($('#indexViewToAddressTemplate').text()),
     templateToThumb: _.template($('#indexViewToThumbTemplate').text()),
@@ -29,9 +27,9 @@ define([
       'click .btn-add-recipient' : 'addOutput',
       'click button[name=btn-sign]' : 'sign',
       'click button[name=btn-sign-chain]' : 'signChain',
-      'blur input[name=to]' : 'lookup',
+      'change input[name=to]' : 'lookup',
       'click button[name^=btn-remove]' : 'removeOutput',
-      'blur input[name=sender]' : 'lookup',
+      'change input[name=sender]' : 'lookup',
       'keyup input[name^=amount]' : 'updateAmount',
       'keyup input[name=to]' : 'updateAddress',
       'keyup input[name=passphrase]' : 'updatePassphrase',
@@ -101,7 +99,6 @@ define([
 
     signMobile: function() {
       this.model.multiSign('mobile', $('input[name=passphrase]').val(), $('input[name=salt]').val);
-      //function(data, text, title, extraSize, QRDataSize)
       Dialogs.dialogQrCode(this.model.signatures.mobile.toString(),'This is the mobile\'s signature. Scan it on your computer when asked','Mobile phone\'s signature')
     },
 
@@ -143,72 +140,9 @@ define([
       $('div[name=tiny-url-tool]').toggle()
     },
 
-    /*dataGetter: function(text, title, ifTrue, doThat) {
-      $('#dialog-data-getter').dialog('destroy');
-      $( '#dialogs' ).html('\
-        <div id="dialog-data-getter" title="' + title + '">'
-
-          + text +
-
-          '<div  style="width: 340px; height: 300px" id=video-display-window>\
-          </div>\
-          <div id="qr-status-tx"></div>\
-        </div>'
-      );
-      var opt = {
-        autoOpen: false,
-        modal: false,
-        width: 380,
-        height:420,
-        hide:'fade',
-        show:'fade'
-      };
-      $('#dialog-data-getter').dialog(opt);
-      $('#dialog-data-getter').css({
-        'border': '1px solid #b9cd6d',
-        'background':'#b9cd6d', 
-        'border': '1px solid #b9cd6d', 
-        'color': '#FFFFFF', 
-        'title': 'Details',
-        'font-weight' : 'bold'
-      });
-      $('#dialog-data-getter').dialog('open')
-      //video
-      $('div[id=video-display-window]').html5_qrcode(function(code){
-        if (ifTrue(code) == true) {
-          localMediaStream.stop();
-          localMediaStream.src = null;
-          localMediaStream.mozSrcObject = null;
-          localMediaStream = null;
-          setTimeout(function(){
-            $('#dialog-data-getter').dialog('destroy');
-            $('#dialog-data-getter').empty();
-          }, 4000);
-          $('div[id=qr-status-tx]').append('<h4 style="color:red;word-break:break-all">' + code + '</h4>');
-          doThat();      
-        }
-      },
-      function(error) {
-        console.log('error');
-      }, 
-      function(error) {
-        console.log('error');
-      });
-
-      $('[title=Close]').click(function(){
-        if (typeof(localMediaStream) != 'undefined' && localMediaStream) {
-          localMediaStream.stop();
-          localMediaStream.src = null;
-          localMediaStream.mozSrcObject = null;
-          localMediaStream = null;
-        }
-      })
-    },*/
-
     loadTiny: function() {
       var master = this;
       var Endpoint = new function() {
-      //  var RESOLVER_URL = 'http://localhost/endpoint/resolver.php';
         var RESOLVER_URL = 'http://almaer.com/endpoint/resolver.php';
         var RESOLVER_CALLBACK = '__Endpoint_resolve';
         
@@ -290,7 +224,7 @@ define([
 
     showAdvanced: function() {
       this.model.advanced = !this.model.advanced;
-      this.init();
+      this.init(this.model.purpose);
     },
 
     loadNext: function() {
@@ -466,84 +400,7 @@ define([
       this.updateFee();
       this.init();
     },
-/*
-    dialogQrCodes: function(dataArray, text, title, QRDataSize, comments) {
-      $('div[class=visible-print]').html('');
-        //dataArray = ['zerzerzer','zfizuoizeuroizeru','jozeirjzoeiruzeroziu']
-      QRDataSize = QRDataSize ? QRDataSize : 850
-      if (typeof(dataArray) == 'string') {
-        dataArray = cryptoscrypt.stringToChunks(dataArray, 850);
-      }
-      $('#dialog-qrcodes').dialog('destroy');
-      //var link = window.location.pathname + '?data=' + this.model.exportData() + '#Multisig';
-      $( '#dialogs' ).html('\
-      <div id="dialog-qrcodes" title=' + title + '>'
 
-        + text +
-
-        '<div id="qrcode-display-window" media="print">\
-        <button class="btn btn-danger" type="button" value="Print Div" onclick=print()> Print </button>\
-        </div>\
-      </div>');
-      $('div[class=visible-print]').append('<h3 style=text-align:center>' + title + '</h3></br>');
-      $('div[class=visible-print]').append('<h4 style=text-align:left>' + text + '</h4></br>');
-      dataArray.forEach(function(chunk, index) {
-        $('div[id=qrcode-display-window]').append('<div style=margin-bottom:20px id=qrcode-number-' + index + '> ' + (comments && comments[index] ? '<h5>' + comments[index] + '</h5>' : '') + '<button name=btn-qrcode-number-' + index + ' class=btn-primary>QRCode # ' + (1 + index) + '</button></div>')
-        $('div[class=visible-print]').append('\
-          <div class=col-xs-6 style="page-break-inside: avoid">\
-            <legend>QRcode #' + (1 + index) + '</legend>\
-            <div id=aqrcode-number-' + index + '></div>\
-            ' + (comments && comments[index] ? '<h5>' + comments[index] + '</h5>' : '') +'\
-          </div>\
-          '
-        )
-
-        var qrcodeData = new QRCode('qrcode-number-' + index, { 
-            width: 300, 
-            height: 300, 
-            correctLevel : QRCode.CorrectLevel.L
-          });
-        qrcodeData.makeCode(chunk);
-        $('canvas','div[id=qrcode-number-' + index + ']').css('border','20px solid').css('border-color','white');
-
-        var aqrcodeData = new QRCode('aqrcode-number-' + index, { 
-            width: 200, 
-            height: 200, 
-            correctLevel : QRCode.CorrectLevel.L
-          });
-       
-        aqrcodeData.makeCode(chunk);
-        
-
-        $('button[name=btn-qrcode-number-' + index + ']').click(function() {
-          $('canvas', 'div[id=qrcode-number-' + index + ']').toggle('blind');
-        })
-        $('canvas', 'div[id=qrcode-number-' + index + ']').css('display','none');
-      });
-
-      var opt = {
-        autoOpen: false,
-        modal: false,
-        width: 400,
-        height:500 + 10 * dataArray.length,
-        hide: { effect: "fade", duration: 400 },
-        show: { effect: "fade", duration: 400 }
-      };
-
-      $('#qrcode-display-window').append('<h2>Data</h2><h5 style=word-break:break-all>' + dataArray.join('</br></br>') + '</h5>');
-      $('#dialog-qrcodes').dialog(opt);
-      $('#dialog-qrcodes').css({
-        'border': '1px solid #ccec8c',
-        'background':'#ccec8c', 
-        'border': '2px solid #ccec8c', 
-        'color': '#000000', 
-        'title': 'Details',
-        'hide': { effect: "fade", duration: 2000 }
-      });
-      $('#dialog-qrcodes').dialog('open')//.parent().effect('slide');
-      $('[role=dialog]').addClass('hidden-print')
-    },
-*/
     signChain: function() {
 
       var master = this;
@@ -559,7 +416,7 @@ define([
 
         var title = 'Transfers'
         var text = '<h6>From Vault: </h6><h5>' + master.model.from + '</h5><h6>to Hot Wallet: </h6><h5>' + master.model.recipients[0].address +
-        '</h5><h6>Each QR code will redeem ' + (master.model.recipients[0].amount/100000000) + ' BTC from the Vault to the Hot Wallet</h6><h5 style="color:red">Please double check every single change addresses</h5>';
+        '</h5><h6>Each QR code will redeem ' + (master.model.recipients[0].amount/100000000) + ' BTC from the Vault to the Hot Wallet</h6><h5 style="color:red">It is highly recommended to double check every single change addresses</h5>';
         var comments = Array.apply(null, Array(Math.ceil(master.model.balance / master.model.recipients[0].amount))).map(function(x, i) { return 'Remaining in Vault: ' + 
           ((master.model.balance - (i * master.model.recipients[0].amount)) / 100000000) + 
           (result.changeAddresses[i] ? ' BTC </br>Change Address : ' + 
@@ -591,52 +448,48 @@ define([
       var passphrase = $('input[name=passphrase]', master.$el).val();
       var salt = $('input[name=salt]', master.$el).val();
       var from = $('input[name=from]', master.$el).val();
-      if (!this.model.tfa) {
-        _.each(cryptoscrypt.brainwallets(passphrase),function(pass, index) {
-          if (pass.pub.getAddress().toString() == from) {
-            passphrase = pass.toWIF();
-          };
-        });
 
-        dosign = function(ev) {
-
-          master.model.sign(passphrase, salt);
-          if (master.model.from != master.model.signAddress) {
-            alert("the signature is invalid");
-          }
-          master.init();
-          title = 'Signed Transaction';
-          text = 'You can verify and push this transaction on <a href=http://blockr.io/tx/push>blockr.io</a></br>\
-          or you can push it directly with this button :</br></br>\
-          <button class="btn btn-danger" name="pushTx">Push</button></br></br>';
-          data = master.model.qrcode;
-          dialogs.dialogQrCode(data, text, title, 50, 850);
-          $('button[name=pushTx]').click(function(){
-            var confirm = window.confirm('Are you absolutely sure ? Bitcoin Transactions cannot be reversed ! Continue at your own risks!')
-            if (confirm == true) {
-              cryptoscrypt.pushTx(data);
-            } else {
-              window.alert('Push cancelled');
-            }
-          })
+      _.each(cryptoscrypt.brainwallets(passphrase),function(pass, index) {
+        if (pass.pub.getAddress().toString() == from) {
+          passphrase = pass.toWIF();
         };
+      });
 
-        var text = '..........Please wait, this should take few seconds on a normal computer..........';
-        $('div[id=please-wait]', this.$el).html('<h3 id="please-wait" style="text-center">' + text + '</h3>');
+      dosign = function(ev) {
 
-        setTimeout(
-          dosign
-        ,100);
-
-        setTimeout(
-          function() {
-            $('div[id=please-wait]', this.$el).html('')
+        master.model.sign(passphrase, salt);
+        if (master.model.from != master.model.signAddress) {
+          alert("the signature is invalid");
+        }
+        master.init();
+        title = 'Signed Transaction';
+        text = 'You can verify and push this transaction on <a href=http://blockr.io/tx/push>blockr.io</a></br>\
+        or you can push it directly with this button :</br></br>\
+        <button class="btn btn-danger" name="pushTx">Push</button></br></br>';
+        data = master.model.qrcode;
+        dialogs.dialogQrCode(data, text, title, 50, 850);
+        $('button[name=pushTx]').click(function(){
+          var confirm = window.confirm('Are you absolutely sure ? Bitcoin Transactions cannot be reversed ! Continue at your own risks!')
+          if (confirm == true) {
+            cryptoscrypt.pushTx(data);
+          } else {
+            window.alert('Push cancelled');
           }
-        ,200);
-      } else {
+        })
+      };
 
-      }
+      var text = '..........Please wait, this should take few seconds on a normal computer..........';
+      $('div[id=please-wait]', this.$el).html('<h3 id="please-wait" style="text-center">' + text + '</h3>');
 
+      setTimeout(
+        dosign
+      ,100);
+
+      setTimeout(
+        function() {
+          $('div[id=please-wait]', this.$el).html('')
+        }
+      ,200);
     },
 
     getParameterByName: function(name) {
@@ -676,27 +529,16 @@ define([
     },
 
     render: function() {
-      this.model.testtt();
+      //var master = this;
       $('Title').html('EasyBTC Send Bitcoin');
-      this.model.checking = false;
-      /*if (typeof(localMediaStream) != 'undefined' && localMediaStream) {
-        localMediaStream.stop();
-        localMediaStream.src = null;
-        localMediaStream.mozSrcObject = null;
-        localMediaStream = null;
-      } */
-
-      var master = this;
-      this.$el.html(this.template(this.model.data()));
-      this.updateTotal();
       $('div[id=contents]').css('border','2px solid black');
+      this.model.checking = false;
+      this.$el.html(this.template(this.model.data()));
     }, 
-
 
     renderFrom: function() {
       $('.addressFrom', this.el).html(this.templateFrom( this.model.data() ));
     },
-
 
     renderAddressTo: function(dataId) {
       recipient = this.model.recipients[dataId];
@@ -706,7 +548,6 @@ define([
       );
     },
 
-
     renderThumbTo: function(dataId) {
       recipient = this.model.recipients[dataId];
       index = dataId;
@@ -715,29 +556,9 @@ define([
       );
     },
 
-/*
-    renderQrCode: function() {
-      var qrSize = 600
-      if (this.model.qrcode==''){ return };
-      $('div[name=qrcode]', this.$el).children().remove();
-      if ($('select[name=qrSize]', this.$el).length > 0) {
-        qrSize = parseInt($('select[name=qrSize]', this.$el).val());
-      };
-
-      qrcode = new QRCode('qrcode', { 
-        width: qrSize, 
-        height: qrSize, 
-        correctLevel : QRCode.CorrectLevel.L
-      });
-
-      qrcode.makeCode(this.model.qrcode);
-    },*/
-
-
     updateTotal: function() {
       $('input[name=total]', this.$el).val(this.model.getTotal()/100000000);
     },
-
 
     updateAmount: function(ev) {
       var recipientId = parseInt($(ev.currentTarget).parents('.addressTo').attr('dataId'));
@@ -745,18 +566,15 @@ define([
       this.updateTotal();
     },   
 
-
     updateAddress: function(ev) {
       var recipientId = parseInt($(ev.currentTarget).parents('.row.addressTo').attr('dataId'));
       this.model.recipients[recipientId][ 'address' ] = ev.currentTarget.value;
     },   
 
-
     putAll: function(ev) {
       this.model.putAll($(ev.currentTarget).parents('.row.addressTo').attr('dataId'));
       this.init();
     }, 
-
 
     removeOutput: function(ev) { 
       this.model.removeRecipient(
@@ -765,12 +583,10 @@ define([
       this.init();
     },
 
-
     addOutput: function() {
       this.model.addRecipient();
       this.init();
     },
-
 
     updateFee: function () {
       if (this.model.feeMode == 'auto') {
@@ -782,13 +598,11 @@ define([
       this.updateTotal();
     },
 
-
     getTotal: function() {
       return (cryptoscrypt.sumArray(
         (_.map($('input[name^=amount]', this.$el),function(str){return (100000000 * str['value'])/2}
         )))+parseInt(this.model.fee))/100000000    
     },
-
 
     lookup: function(ev) {
       var master = this;
@@ -797,22 +611,28 @@ define([
       var fieldValue = ev.currentTarget.value;
       var recipientId = $(ev.currentTarget).parents('.row.addressTo').attr('dataId');
       var fieldEntry = ev.currentTarget.value.trim();
+      
+      var resetFrom = function() {
+        master.model.from = '';
+        master.model.thumbFrom = '';
+        master.model.balance = '';
+        master.renderFrom();
+      }
+      
+      var resetTo = function() {
+        master.model.recipients[ recipientId ].address = '';
+        master.model.recipients[ recipientId ].thumb = '';
+        master.renderAddressTo(recipientId);
+        master.renderThumbTo(recipientId);
+      }
 
-      //Initialize if nothing is entered
-//example of redeemscript 5241043710152c7e4130fc188a4f655d90a535d3cab2609a633af8bc62d9b41dc89ea52ab95b28b05d47ac52c7bdf39ea7b32c3786de67816f0ce2699d42b5350db5164104ce67436ba03c7f0dff6a55cbf1af952e966c92282ed530186f72384683a4f8f0e856fc8cb5e6e711d7f0c4dccbd4d40fd30bb252d75035f18555aedb917b34a352ae
       if ((fieldValue == '') & (fieldName == 'sender')) {
-        this.model.from = '';
-        this.model.thumbFrom = '';
-        this.model.balance = '';
-        this.renderFrom();
+        resetFrom();
         return
       };
 
       if ((fieldValue == '') & (fieldName == 'to')) {
-        this.model.recipients[ recipientId ].address = '';
-        this.model.recipients[ recipientId ].thumb = '';
-        this.renderAddressTo(recipientId);
-        this.renderThumbTo(recipientId);
+        resetTo();
         return
       };
 
@@ -831,7 +651,9 @@ define([
           master.model.updateBalance().done(function() {
           master.renderFrom();
           master.updateFee();
-          }).fail(function() {console.log('problem')});
+          }).fail(function() {
+            console.log('problem')
+          });
         };
 
         if (ev.currentTarget.name == 'to') {
@@ -844,8 +666,6 @@ define([
         $('div[id=iStatus]').html('<h4 style="color:red">Something went wrong during the lookup! Check your info and your internet</h4>')
       })
     },
-
-
   });
   return IndexView;
 });

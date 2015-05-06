@@ -29,10 +29,6 @@
 		this.redeemscript = '';
 		this.signatures = {computer:[],mobile:[]};
 		this.tinyLink = ''
-		
-
-		this.testtt = function() {
-		}
 
 		this.buildMultisigTx = function() {
 			return cryptoscrypt.buildTx(
@@ -327,7 +323,8 @@
 				purpose: this.purpose,
 				signed: this.hash && true,
 				advanced: this.advanced,
-				tfa: this.tfa
+				tfa: this.tfa,
+				successClass: function(address) {return cryptoscrypt.validAddress(address) ? 'has-success' : (address ? 'has-error' : '')}
 			};
 		}
 
@@ -620,8 +617,8 @@
 			this.qrcode = txs[0].toHex().toString();
 
 			// Show the signed transaction Hex
-			console.log(txs[0]);
-			console.log(txs[0].toHex());
+			//console.log(txs[0]);
+			//console.log(txs[0].toHex());
 			master.hash = cryptoscrypt.getHashFromTx(txs[0].toHex());
 		}
 
@@ -695,42 +692,38 @@
 		}
 		
 
-		this.lookup = function(field,dataId,inputValue) {
+		this.lookup = function(field,dataId,inputValue,thumb) {
 			var master = this;
 			var address = inputValue;
-			
+			var currentThumb = thumb ? thumb : '';
 			// If nothing
-
 			if (inputValue == '') {
 				return $().promise(); 
 			}
 
 			// Stop function if nothing has changed
-
 			check = (field == 'sender') ? this.checkedFrom : master.recipients[dataId].checkedAddress;
 			if (inputValue == check) {
 				return $().promise();
 			}
 
 			//reset values if anything changed
-
 			if (field == 'sender') {
 				this.balance = '';
 				//this.from = inputValue; this is already done on keydown
-				this.thumbFrom = '';
+				this.thumbFrom = currentThumb;
 			} 
 
 			if (field == 'to') {
 				//this.recipients[dataId].address = inputValue; This is already done on keydown
-				this.recipients[dataId].thumb = '';
+				this.recipients[dataId].thumb = currentThumb;
 			} 
 
 			//If address is already valid
-
 			if (cryptoscrypt.validAddress(inputValue)) {
 				if (field == 'sender') {
 					this.from = address;
-					this.thumbFrom = '';
+					this.thumbFrom = currentThumb;
 					// If we are in 2FA, but the address doesnt match the redeemscript, return an error
 					if (master.tfa && (address != cryptoscrypt.getMultisigAddressFromRedeemscript(this.redeemscript))) {
 						window.alert('You have to put a 2FA Vault here, not an address')
@@ -739,12 +732,10 @@
 					}
 					this.updateBalance().done();
 				} 
-
 				if (field == 'to') {
 					this.recipients[dataId].address = inputValue;
-					this.recipients[dataId].thumb = '';
+					this.recipients[dataId].thumb = currentThumb;
 				}
-				
 				return $().promise();
 			}
 			// If not valid address, check if it is a 2FA
@@ -757,21 +748,17 @@
 				master.checkedFrom = address;
 				return $().promise();
 			}
-
 				
 			// Lookup on onename.io, since everything else has failed
 			return $.getJSON('https://onename.com/' + inputValue + '.json').done(function(data) {
-
 				address = data.bitcoin.address ? data.bitcoin.address : '';
-
 				if (data.avatar) {
-
+					currentThumb = data.avatar.url
 					if (field == 'sender') {
-					master.thumbFrom = data.avatar.url
+						master.thumbFrom = currentThumb;
 					} else {
-					master.recipients[dataId].thumb = data.avatar.url
+						master.recipients[dataId].thumb = currentThumb;
 					}
-
 				};
 
 				// Double check that whatever onename.io sent is valid
@@ -786,7 +773,7 @@
 							master.recipients[dataId].checkedAddress = address;
 						};
 					}*/
-				return master.lookup(field, dataId, address)
+				return master.lookup(field, dataId, address, currentThumb)
 			})
 		}
 	}

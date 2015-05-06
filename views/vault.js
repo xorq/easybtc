@@ -108,11 +108,18 @@ define([
 				iCheck();
 			} 
 		},
+		getParameterByName: function(name) {
+			name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
+			var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
+			results = regex.exec(location.search);
+			return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
+	    },
 
 		render: function(parameters) {
 			$('Title').html('EasyBTC Vault Creator');
+			console.log(parameters);
 			this.tfa = parameters.tfa;
-			this.$el.html(this.template({tfa:parameters.tfa}));
+			this.$el.html(this.template({tfa:parameters.tfa, mobile:this.getParameterByName('mobile')}));
 			$('div[id=contents]').css('border','2px solid black');
 			checking = false;
 			//$('.btn-generate').html(parameters.tfa ? 'Computer' : 'Generate')
@@ -123,9 +130,10 @@ define([
 
 		random: function() {
 			this.internetChecker();
+			var passphrase = $('input[name=passphrase]', this.$el).val().toString();
+			//WordList.random($('select[name=count_words]', this.$el).val())
 			$('input[name=passphrase]', this.$el).val(
-				WordList.random($('select[name=count_words]', this.$el).val())
-			);
+			passphrase + ($('input[name=passphrase]', this.$el).val().toString().length > 0 ? " " : "") + WordList.random(1));
 
 		}, 
 
