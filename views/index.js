@@ -416,9 +416,9 @@ define([
 
         var title = 'Transfers'
         var text = '<h6>From Vault: </h6><h5>' + master.model.from + '</h5><h6>to Hot Wallet: </h6><h5>' + master.model.recipients[0].address +
-        '</h5><h6>Each QR code will redeem ' + (master.model.recipients[0].amount/100000000) + ' BTC from the Vault to the Hot Wallet</h6><h5 style="color:red">It is highly recommended to double check every single change addresses</h5>';
+        '</h5><h6>Each QR code will redeem ' + (master.model.recipients[0].amount/100000000) + ' BTC from the Vault to the Hot Wallet</h6><h5 style="color:red">It is highly recommended to dataouble check every single change addresses</h5>';
         var comments = Array.apply(null, Array(Math.ceil(master.model.balance / master.model.recipients[0].amount))).map(function(x, i) { return 'Remaining in Vault: ' + 
-          ((master.model.balance - (i * master.model.recipients[0].amount)) / 100000000) + 
+          ((master.model.balance - (i * (master.model.fee + master.model.recipients[0].amount))) / 100000000) + 
           (result.changeAddresses[i] ? ' BTC </br>Change Address : ' + 
           result.changeAddresses[i]+ 
           '</br><h6>Passphrase: your passphrase + ' + (i + 1) : '') + '</br>'}  );
