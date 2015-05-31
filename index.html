@@ -244,7 +244,7 @@
 
 		<script type='text/template' id='indexViewFromTemplate'>
 			<div class='row col-sm-9 col-xs-12 form-group has-feedback input-prepend <%=this.successClass(from) %>'>
-				<label for='sendingAddr'><%=tfa ? 'Sending 2FA Vault' : 'Sending Addresse'%></label>
+				<label for='sendingAddr'><%=tfa ? 'Sending 2FA Vault' : 'Sending Address'%></label>
 
 				<div class='row input-group hidden-xs' style='padding-left:15px'>
 					<input type='text' id='sendingAddr' tabindex='1' class='form-control groupeA' name='sender' placeholder='<%=tfa ? "2FA Redeem Code" : "BTC address Onename"%>' value='<%= from %>'></input>
@@ -362,7 +362,7 @@
 					<div class='row col-xs-12 addressFrom' name='div-from' style=''>
 						
 						<div class='row col-sm-9 col-xs-12 form-group has-feedback input-prepend <%=successClass(from) %>'>
-							<label for='sendingAddr'><%=tfa ? 'Sending 2FA Vault' : 'Sending Addresse'%></label>
+							<label for='sendingAddr'><%=tfa ? 'Sending 2FA Vault' : 'Sending Address'%></label>
 
 							<div class='row input-group hidden-xs' style='padding-left:15px'>
 								<input type='text' id='sendingAddr' tabindex='1' class='form-control groupeA' name='sender' placeholder='<%=tfa ? "2FA Redeem Code" : "BTC address Onename"%>' value='<%= from %>'></input>

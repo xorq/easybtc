@@ -233,7 +233,6 @@
 
 		this.importData = function(code) {
 			var jsonCode = JSON.parse(code);
-			console.log(jsonCode.unspent)//_.pluck(jsonCode.unspents, 'value'));
 			if (jsonCode.recipients) { this.recipients = jsonCode.recipients };
 			if (jsonCode.unspents) { this.unspents = jsonCode.unspents };
 			if (jsonCode.redeemscript) { this.redeemscript = jsonCode.redeemscript }
@@ -573,6 +572,7 @@
 			_.each(cryptoscrypt.brainwallets(passphrase),function(pass, index) {
 				if (pass.pub.getAddress().toString() == master.from) {
 					passphrase = pass.toWIF();
+					return
 				};
 			});
 

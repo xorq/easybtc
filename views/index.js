@@ -511,6 +511,7 @@ define([
       this.render();
       if (data) {
         this.model.importData(data);
+        this.render();
         if (this.model.tfa) {
           $('div[name=signature]').parent().prepend('<h4 style=color:red>Use your 2FA mobile passphrase </br>It is recommended to be in airplane mode during the process, then close your browser and restart your phone before going online again.</br>Also, avoid reusing the same address.</h4>')
           $('div[name=transaction]').css('display','none')
