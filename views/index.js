@@ -301,13 +301,13 @@ define([
     },
 
     export: function() {
-      var link = window.location.pathname + '?data=' + this.model.exportData() + '#index';
+      var link = window.location.protocol + window.location.pathname + '?data=' + this.model.exportData() + '#transaction';
       var hash = sjcl.codec.base64.fromBits(sjcl.hash.sha256.hash(JSON.stringify(this.model.exportData()))).toString().slice(0,20);
       var tex = 'This <a style="text-align:center" href=' + link + '>link</a> opens this page with all your data.</a>\
-      </br></br>This is the hash for all the data : </br> ' + '<a style="color:red">' + hash + '</a></br>You can use it to double check that all the data are the same on different devices</br></br> Use tools/import data to transfer the data using the following QRCodes:</br></br>'
+      </br></br>This is the hash for all the data : </br> ' + '<a style="color:red">' + hash + '</a></br>You can use it to double check that all the data are the same on different devices</br></br></br></br>'
       var title = 'Data Link';
       var data = this.model.export();
-      Dialogs.dialogQrCodes(data, tex, title);
+      Dialogs.dialogQrCode('http:/' + link, tex, title);
     },
 
     drawExportQrcode: function(a) {

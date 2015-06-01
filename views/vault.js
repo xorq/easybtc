@@ -22,10 +22,16 @@ define([
 			'focus input[id=passphrase]' : 'internetChecker',
 			'click .btn-generate-computer' : 'tfaGenerateComputer',
 			'click .btn-generate-mobile' : 'tfaGenerateMobile',
+			'click .btn-refresh' : 'refreshRandom'
 		}, 
 
+		refreshRandom: function() {
+			var passphrase = $('input[name=passphrase]', this.$el).val();
+			var numberOfWords = passphrase.split(/\s+/).length;
+			$('input[name=passphrase]').val(WordList.random(numberOfWords));
+		},
+
 		tfaGenerateMobile: function() {
-			//function(data, text, title, extraSize, QRDataSize)
 			var passphrase = $('input[name=passphrase]', this.$el).val()
 			var salt = $('input[name=passphrase]', this.$el).val()
 
