@@ -53,6 +53,7 @@ define([
     },
 
     signComputer: function() {
+
       this.model.multiSign('computer', $('input[name=passphrase]').val(), $('input[name=salt]').val());
       var master = this;
       //function(text, title, callback, callback2)
@@ -98,8 +99,11 @@ define([
     },
 
     signMobile: function() {
-      this.model.multiSign('mobile', $('input[name=passphrase]').val(), $('input[name=salt]').val);
-      Dialogs.dialogQrCode(this.model.signatures.mobile.toString(),'This is the mobile\'s signature. Scan it on your computer when asked','Mobile phone\'s signature')
+      var master = this;
+      this.model.multiSign('mobile', $('input[name=passphrase]').val(), $('input[name=salt]').val()).done(function(){
+        console.log(master.model.signatures.mobile.toString())
+        Dialogs.dialogQrCode(master.model.signatures.mobile.toString(),'This is the mobile\'s signature. Scan it on your computer when asked','Mobile phone\'s signature')
+      });
     },
 
     validateTransaction: function() {
@@ -301,7 +305,7 @@ define([
     },
 
     export: function() {
-      var link = window.location.protocol + window.location.pathname + '?data=' + this.model.exportData() + '#transaction';
+      var link = window.location.protocol + window.location.pathname + 'index.html?data=' + this.model.exportData() + '#transaction';
       var hash = sjcl.codec.base64.fromBits(sjcl.hash.sha256.hash(JSON.stringify(this.model.exportData()))).toString().slice(0,20);
       var tex = 'This <a style="text-align:center" href=' + link + '>link</a> opens this page with all your data.</a>\
       </br></br>This is the hash for all the data : </br> ' + '<a style="color:red">' + hash + '</a></br>You can use it to double check that all the data are the same on different devices</br></br></br></br>'
@@ -457,27 +461,31 @@ define([
 
       dosign = function(ev) {
 
-        master.model.sign(passphrase, salt);
-        if (master.model.from != master.model.signAddress) {
-          alert("the signature is invalid");
-        }
-        master.init();
-        title = 'Signed Transaction';
-        text = 'You can verify and push this transaction on <a href=http://blockr.io/tx/push>blockr.io</a></br>\
-        or you can push it directly with this button :</br></br>\
-        <button class="btn btn-danger" name="pushTx">Push</button></br></br>';
-        data = master.model.qrcode;
-        dialogs.dialogQrCode(data, text, title, 50, 850);
-        $('button[name=pushTx]').click(function(){
-          var confirm = window.confirm('Are you absolutely sure ? Bitcoin Transactions cannot be reversed ! Continue at your own risks!')
-          if (confirm == true) {
-            cryptoscrypt.pushTx(data);
-          } else {
-            window.alert('Push cancelled');
+        master.model.sign(passphrase, salt).done(function(a){
+          console.log(a)
+          if (master.model.from != master.model.signAddress) {
+            alert("the signature is invalid");
           }
-        })
+          master.init();
+          title = 'Signed Transaction';
+          text = 'You can verify and push this transaction on <a href=http://blockr.io/tx/push>blockr.io</a></br>\
+          or you can push it directly with this button :</br></br>\
+          <button class="btn btn-danger" name="pushTx">Push</button></br></br>';
+          data = master.model.qrcode;
+          dialogs.dialogQrCode(a[0].toHex(), text, title, 50, 850);
+          $('button[name=pushTx]').click(function(){
+            var confirm = window.confirm('Are you absolutely sure ? Bitcoin Transactions cannot be reversed ! Continue at your own risks!')
+            if (confirm == true) {
+              cryptoscrypt.pushTx(data);
+            } else {
+              window.alert('Push cancelled');
+            }
+          })
+        });
       };
 
+    dosign()
+/*   
       var text = '..........Please wait, this should take few seconds on a normal computer..........';
       $('div[id=please-wait]', this.$el).html('<h3 id="please-wait" style="text-center">' + text + '</h3>');
 
@@ -490,6 +498,7 @@ define([
           $('div[id=please-wait]', this.$el).html('')
         }
       ,200);
+*/
     },
 
     getParameterByName: function(name) {

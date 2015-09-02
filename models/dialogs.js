@@ -4,6 +4,30 @@ define([
 	'models/qrcode',
 ], function(_, $, qrcode) {
 	return window.dialogs = dialogs = {
+		normalOne: function(text, title){
+
+			$('#dialog-qrcode').dialog('destroy');
+			
+			$( '#dialogs' ).html('\
+				<div id="dialog-qrcode" title="' + title + '">'
+
+					+ text +
+
+				'</div>'
+			);
+
+			var opt = {
+				autoOpen: false,
+				modal: false,
+				hide: { effect: "fade", duration: 400 },
+				show: { effect: "fade", duration: 400 }
+			};
+			$('#dialog-qrcode').dialog(opt);
+			$('#dialog-qrcode').dialog('open')
+			
+			
+		},
+
 		dataGetter: function(text, title, callback, callback2) {
 			try {
 				$('#dialog-data-getter').dialog('destroy');

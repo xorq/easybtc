@@ -11,6 +11,7 @@ define([
     el: $('#contents'),
     
     render: function() {
+      //cryptoscrypt.warp('caca', 'boutchou', function(i){console.log(i)}, function(res){console.log(res)});
       $('Title').html('EasyBTC Send Bitcoin');
       $('div[id=contents]').css('border','2px solid black');
       $('div[id=contents]').html('<div class="col-xs-12">\

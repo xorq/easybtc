@@ -28,18 +28,33 @@ define([
 		refreshRandom: function() {
 			var passphrase = $('input[name=passphrase]', this.$el).val();
 			var numberOfWords = passphrase.split(/\s+/).length;
+			var numberOfWords = passphrase.length == 0 ? 1 : numberOfWords;
+			console.log(numberOfWords);
 			$('input[name=passphrase]').val(WordList.random(numberOfWords));
 		},
 
 		tfaGenerateMobile: function() {
 			var passphrase = $('input[name=passphrase]', this.$el).val()
-			var salt = $('input[name=passphrase]', this.$el).val()
+			var salt = $('input[name=email]', this.$el).val()
 
-			var data = cryptoscrypt.validPkey(passphrase) ? cryptoscrypt.WIFToPubKey(passphrase) : cryptoscrypt.warp(
+			if (cryptoscrypt.validPkey(passphrase)) {
+				
+				Dialogs.dialogQrCode(cryptoscrypt.WIFToPubKey(passphrase), 'You will be asked to scan this QRCode on the computer', 'Public Key')	;
+				
+			} else {
+				cryptoscrypt.warp(
 					passphrase, 
-					salt
-				)[2];
-			Dialogs.dialogQrCode(data, 'You will be asked to scan this QRCode on the computer', 'Public Key');
+					salt,
+					function(i){
+						$('h3[id=please-wait]').text( i.what + ' ' + Math.floor(100 * i.i/i.total) + '%')
+					},
+					function(res){
+						Dialogs.dialogQrCode(cryptoscrypt.WIFToPubKey(res.private), 'You will be asked to scan this QRCode on the computer', 'Public Key')	;
+					}
+				)
+			}
+			;
+			
 
 		},
 
@@ -62,21 +77,35 @@ define([
 				console.log(passphrase);
 				console.log(salt);
 				
-				vaultParts.pubkeyComputer = cryptoscrypt.validPkey(master.passphrase) ? cryptoscrypt.pkeyToPubKey(master.passphrase) : cryptoscrypt.warp(
-					$('input[name=passphrase]', master.$el).val(), 
-					$('input[name=email]', master.$el).val()
-				)[2];
+				vaultParts.pubkeyComputer = cryptoscrypt.validPkey(master.passphrase) ? cryptoscrypt.pkeyToPubKey(master.passphrase) : [2];
 
-				console.log(vaultParts);
-
-				if (vaultParts.pubkeyComputer == vaultParts.pubkeyMobile) {
-					window.alert('Your Computer\'s public key appears to be the same as your mobile\'s, you should have different passphrases on each devices. Process aborted')
-					return
+				if (cryptoscrypt.validPkey(master.passphrase)) {
+					vaultParts.pubkeyComputer = cryptoscrypt.pkeyToPubKey(master.passphrase);
+					succeeded();
+				} else {
+					cryptoscrypt.warp(
+						$('input[name=passphrase]', master.$el).val(), 
+						$('input[name=email]', master.$el).val(),
+						function(i){
+							$('h3[id=please-wait]').text( i.what + ' ' + Math.floor(100 * i.i/i.total) + '%')
+						},
+						function(res){
+							vaultParts.pubkeyComputer = cryptoscrypt.WIFToPubKey(res.private);
+							succeeded();
+						}
+					)
 				}
-				console.log(vaultParts)
-				multisig = cryptoscrypt.getMultisigAddress([vaultParts.pubkeyComputer, vaultParts.pubkeyMobile], 2)
 
-				Dialogs.dialogQrCode(multisig.redeemscript, '<h2> Success !</h2>This is your bitcoin address to your 2FA Vault: </h4><h4 style="color:red">' + multisig.address + '</h4> You will need your mobile and your computer\'s passphrases to spend from it. </br>This QR Code contains your 2FA Redeem Code.</br>Do save the data in this QR Code. You will need it on order to spend from your Vault</h4></br>', '2FA bitcoin address')
+				var succeeded = function() {
+					if (vaultParts.pubkeyComputer == vaultParts.pubkeyMobile) {
+						window.alert('Your Computer\'s public key appears to be the same as your mobile\'s, you should have different passphrases on each devices. Process aborted')
+						return
+					}
+					console.log(vaultParts)
+					multisig = cryptoscrypt.getMultisigAddress([vaultParts.pubkeyComputer, vaultParts.pubkeyMobile], 2)
+
+					Dialogs.dialogQrCode(multisig.redeemscript, '<h2> Success !</h2>This is your bitcoin address to your 2FA Vault: </h4><h4 style="color:red">' + multisig.address + '</h4> You will need your mobile and your computer\'s passphrases to spend from it. </br>This QR Code contains your 2FA Redeem Code.</br>Do save the data in this QR Code. You will need it on order to spend from your Vault</h4></br>', '2FA bitcoin address')
+				}
 			}
 			//function(text, title, callback, callback2)
 			Dialogs.dataGetter('Scan the QRcode provided by your mobile device here </br><h6>(Of course, your passphrase should be different on each devices)</h6>', 'Mobile Data', callback, callback2);
@@ -182,6 +211,8 @@ define([
 
 		generate: function(master) {
 
+
+
 			master = master ? master : this;
 
 			master.passphraseMemory = $('input[name=passphrase]', master.$el).val()
@@ -190,27 +221,35 @@ define([
 			if (cryptoscrypt.validPkey(master.passphraseMemory)) { return };
 			master.deleteResults()
 
+
 			var qrcode = new QRCode("qrcode-address-image", {width: 260, height: 260,correctLevel : QRCode.CorrectLevel.L, colorDark : 'black'});
 			var qrcode2 = new QRCode("qrcode-privkey-image", {width: 260, height: 260, correctLevel : QRCode.CorrectLevel.L, colorDark : 'red'});
 			var qrcode3 = new QRCode("qrcode-pubkey-image", {width: 260, height: 260, correctLevel : QRCode.CorrectLevel.L, colorDark : 'darkBlue'});
 
-			var result = cryptoscrypt.warp(
-				$('input[name=passphrase]', master.$el).val(), 
-				$('input[name=email]', master.$el).val()
-			);    
+			cryptoscrypt.warp(
+				$('input[name=passphrase]', master.$el).val(),
+				$('input[name=email]', master.$el).val(), 
+				function(i){
+					$('h3[id=pleaseWait]').text( i.what + ' ' + Math.floor(100 * i.i/i.total) + '%'	) 
+					}, 
+				function(result){
 
-			qrcode.makeCode('bitcoin:'+result[1]);
-			qrcode2.makeCode(result[0]);
-			qrcode3.makeCode(result[2]);
+					qrcode.makeCode('bitcoin:'+result.public);
+					qrcode2.makeCode(result.private);
+					qrcode3.makeCode(cryptoscrypt.WIFToPubKey(result.private));
 
-			$('div[id=label-pubkey]').text(result[2]);
-			$('div[id=label-address]').text(result[1]);
-			$('div[id=label-privkey]').text(result[0]);
-			$('div[id=text-address]').text("Address");
-			$('div[id=text-privatekey]').text("Private Key");
-			$('div[id=text-pubkey]').text("Public Key (for multisig)");
+					$('div[id=label-pubkey]').text(cryptoscrypt.WIFToPubKey(result.private));
+					$('div[id=label-address]').text(result.public);
+					$('div[id=label-privkey]').text(result.private);
+					$('div[id=text-address]').text("Address");
+					$('div[id=text-privatekey]').text("Private Key");
+					$('div[id=text-pubkey]').text("Public Key (for multisig)");
+					
+					$('div[id=pleaseWait]', master.$el).html('')
+
+				});
+
 			
-			$('div[id=pleaseWait]', master.$el).html('')
 		}
 	});
 

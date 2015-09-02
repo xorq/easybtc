@@ -4,7 +4,8 @@ define([
 	'models/pbkdf2',
 	'models/bitcoinjs.min',
 	'models/biginteger',
-], function(_, Scrypt, PBKDF2, Bitcoin, BigInteger) {
+	'models/bitcoin'
+], function(_, Scrypt, PBKDF2, Bitcoin, BigInteger, bitc) {
 	
 	return window.cryptoscrypt = cryptoscrypt = {
 
@@ -153,6 +154,8 @@ define([
 		},
 
 		scrypto: function(passphrase, salt) {
+			console.log(passphrase)
+			console.log(salt)
 			try {
 				var scrypt = scrypt_module_factory( Math.pow(2,29) );
 				var n = Math.pow(2, 18)
@@ -201,7 +204,8 @@ define([
 			return sjcl.codec.hex.fromBits(res);
 		},
 
-		warp: function(passphrase, salt) {
+		warp: function(passphrase, salt, hook, callback) {
+			/*
 			var hex1 = this.scrypto(passphrase,salt);
 			var hex2 = this.pbkdf2o(passphrase,salt);
 			if (hex1 == 'error') {
@@ -213,8 +217,25 @@ define([
 			}
 			var key = new Bitcoin.ECKey(BigInteger.fromHex(out), false);
 			var cpub = 	new Bitcoin.ECPubKey(key.pub.Q,false);
-			return [key.toWIF(),key.pub.getAddress().toString(),cpub.toHex()];
-		},
+			return [key.toWIF(),key.pub.getAddress().toString(),cpub.toHex()];*/
+
+			var params = { 
+				"N"        : 18,
+				"p"        : 1,
+				"r"        : 8,
+				"dkLen"    : 32,
+				"pbkdf2c"  : 65536
+			}
+
+			
+			warpwallet.run({
+	        passphrase: passphrase,
+	        salt: salt,
+	        progress_hook: hook,
+	        params: params},
+	        callback)
+
+		}, 
 
 		weakWarp: function(passphrase, salt) {
 			console.log(passphrase)
@@ -274,7 +295,8 @@ define([
 			return pkey
 		},
 
-		signTx: function(tx,pkey) {
+		signTx: function(tx, pkey) {
+			console.log(tx)
 			for ( var i = 0; i < tx[1]; i++) {
 				tx[0].sign(i,pkey);
 			};

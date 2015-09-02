@@ -63,96 +63,75 @@
 						console.log(new Bitcoinjs.ECSignature.fromDER(new BigInteger.fromHex(data[inputIndex]).toBuffer()))
 						return new Bitcoinjs.ECSignature.fromDER(new BigInteger.fromHex(data[inputIndex]).toBuffer());
 				});
-				console.log(sigArray);
-				//if (sigArray[inputIndex]) {
-					console.log('ok')
-					_.each(sigArray, function(sig, sigNumber) {
-						txb.signatures[inputIndex].signatures[sigNumber] = (sigArray[sigNumber]);
-					})
-					//txb.signatures[inputIndex].signatures[0] = (sigArray[0]);
-					//txb.signatures[inputIndex].signatures[1] = (sigArray[1]);
-				//}
+
+				_.each(sigArray, function(sig, sigNumber) {
+					txb.signatures[inputIndex].signatures[sigNumber] = (sigArray[sigNumber]);
+				})
 				console.log(txb);
 			});
 			console.log(txb);
-			//Mapping every signatures that are present into the transaction object
-			/*console.log	({0:master.signatures.computer, 1:master.signatures.mobile})
-			_.each({0:master.signatures.computer, 1:master.signatures.mobile}, function(signatures, signaire) {
-				console.log(signaire);
-				console.log(txb);
-				console.log(txb.signatures[signaire]);
-				txb.signatures[signaire].signatures = [];
-				console.log(txb.signatures[signaire]);
-				if (signaire < 1) {
-					console.log('entered the field')
-					console.log(signatures);
-					var sigArray = _.map(signatures, function(data) {
-						console.log(data)
-						console.log(new Bitcoinjs.ECSignature.fromDER(new BigInteger.fromHex(data).toBuffer()))
-						return new Bitcoinjs.ECSignature.fromDER(new BigInteger.fromHex(data).toBuffer());
-					});
-					console.log(sigArray);
-
-					_.each(txb.tx.ins, function(input, index) {
-						if (sigArray[index]) {
-							txb.signatures[index].signatures[signaire] = (sigArray[index]);
-						}
-					});
-					console.log(txb);
-				}
-			})*/
 			var result = txb.build().toHex();
 			return result;
 			console.log(result);
 		}
 
 		this.multiSign = function(device, passphrase, salt) {
+			master = this;
 
-			var tx = cryptoscrypt.buildTx(
-				_.pluck(this.unspents, 'transaction_hash'),
-				_.pluck(this.unspents, 'transaction_index'),
-				_.pluck(this.unspents, 'value'),
-				_.pluck(this.recipients, 'address'),
-				cryptoscrypt.getMultisigAddressFromRedeemscript(this.redeemscript),
-				_.pluck(this.recipients, 'amount'),
-				this.fee
-			);
 
-			var warp = cryptoscrypt.warp(passphrase, salt)
-			var pkey = warp[0]
-			//Sign
-			var signingAddress = warp[1];
-			if (this.getTotal()>this.balance) {
-				window.alert('There is not enough money available');
-				return;
-			}
-			console.log(this.unspents)
-			console.log(this.recipients)
-			console.log(cryptoscrypt.getMultisigAddressFromRedeemscript(this.redeemscript))
-			// Build the unsigned transaction;
 
-			this.rawTx = tx[0].toHex()
-			var tx = Bitcoinjs.Transaction.fromHex(tx[0].toHex());
-			var txb = Bitcoinjs.TransactionBuilder.fromTransaction(tx);
-
-			// Perform the signatures
-			console.log(pkey)
-			pkey = Bitcoinjs.ECKey.fromWIF(pkey);
-			console.log(pkey);
-			//master.signatures.computer = [];
-			_.each(txb.tx.ins, function(data, index) {
-				txb.sign(index, pkey, Bitcoinjs.Script.fromHex(master.redeemscript));
-				// Save the signatures in the signatures object
-				if (device == 'computer') {
-					master.signatures.computer[index] = txb.signatures[index].signatures[0].toDER().toString('hex');
-				}
-				if (device == 'mobile') {
-					master.signatures.mobile[index] = txb.signatures[index].signatures[0].toDER().toString('hex');
-				}
-			});
-			console.log(this.signatures);
+			def = $.Deferred();
 			//get the signature from the qrcode
+			cryptoscrypt.warp(passphrase, salt, function(i){
+						$('h3[id=please-wait]').text( i.what + ' ' + Math.floor(100 * i.i/i.total) + '%') 
+					},
+			function(res){
+				var pkey = res.private
+				//Sign
+				var signingAddress = res.public;
+				if (master.getTotal() > master.balance) {
+					window.alert('There is not enough money available');
+					return;
+				}
+				/*console.log(master.unspents)
+				console.log(master.recipients)
+				console.log(cryptoscrypt.getMultisigAddressFromRedeemscript(master.redeemscript))
+				*/
+				// Build the unsigned transaction;
+				var tx = cryptoscrypt.buildTx(
+					_.pluck(this.unspents, 'transaction_hash'),
+					_.pluck(this.unspents, 'transaction_index'),
+					_.pluck(this.unspents, 'value'),
+					_.pluck(this.recipients, 'address'),
+					cryptoscrypt.getMultisigAddressFromRedeemscript(this.redeemscript),
+					_.pluck(this.recipients, 'amount'),
+					this.fee
+				);
+				console.log(tx)
 
+				master.rawTx = tx[0].toHex()
+				var tx = Bitcoinjs.Transaction.fromHex(tx[0].toHex());
+				var txb = Bitcoinjs.TransactionBuilder.fromTransaction(tx);
+
+				// Perform the signatures
+				console.log(txb)
+				pkey = Bitcoinjs.ECKey.fromWIF(pkey);
+
+				//master.signatures.computer = [];
+				_.each(txb.tx.ins, function(data, index) {
+					txb.sign(index, pkey, Bitcoinjs.Script.fromHex(master.redeemscript));
+					// Save the signatures in the signatures object
+					if (device == 'computer') {
+						master.signatures.computer[index] = txb.signatures[index].signatures[0].toDER().toString('hex');
+					}
+					if (device == 'mobile') {
+						master.signatures.mobile[index] = txb.signatures[index].signatures[0].toDER().toString('hex');
+					}
+				});
+				console.log(master.signatures);
+				def.resolve(master.signatures.mobile);
+			})
+			return def
 			//do the multisig
 		}
 
@@ -180,15 +159,15 @@
 			  this.fee
 			);
 			this.rawTx = tx[0].toHex()
-			var tx = Bitcoin.Transaction.fromHex(tx[0].toHex());
-			var txb = Bitcoin.TransactionBuilder.fromTransaction(tx);
+			var tx = Bitcoinjs.Transaction.fromHex(tx[0].toHex());
+			var txb = Bitcoinjs.TransactionBuilder.fromTransaction(tx);
 
 			// Perform the signatures
 			this.multisig;
-			pkey = Bitcoin.ECKey.fromWIF(pkey);
+			pkey = Bitcoinjs.ECKey.fromWIF(pkey);
 			result = [];
 			_.each(txb.tx.ins, function(data, index) {
-				txb.sign(index, pkey, Bitcoin.Script.fromHex(master.multisig.redeemscript));
+				txb.sign(index, pkey, Bitcoinjs.Script.fromHex(master.multisig.redeemscript));
 				// Save the signatures in the signatures object
 				result.push(txb.signatures[index].signatures[0].toDER().toString('hex'));
 			});
@@ -441,7 +420,7 @@
 		this.getFee = function() {
 
 			try {
-				master = this;
+				var master = this;
 				if (this.from == '') { return 0 }
 				if (this.feeMode == 'custom') {
 					return this.fee
@@ -471,13 +450,14 @@
 		}
 
 		this.doChain = function(numberOfTransactions) {
-
+			var master = this;
 			//Initialize result variable
 			var resa = {
 				changeAddresses:[],
 				results : [],
 				recovery : []
 			};
+			var def = $.Deferred();
 
 			var nextHash = function(resa, passphrase, salt, hashRedeemed, index, valueRedeemed, recipientAddress, stepValue, fee, numberOfTransactions, previousNextPkey ) {
 				
@@ -488,81 +468,113 @@
 				var isReallyLast = (newValue <= 0)
 
 				//get the private keys:
-
-				var pkey = previousNextPkey ? previousNextPkey : cryptoscrypt.getPkey(passphrase, salt);
-				var nextPkey = isReallyLast ? '' : cryptoscrypt.getPkey(passphrase + (1 + resa.results.length) , salt);
-				var changeAddress = isReallyLast ? '' : cryptoscrypt.pkeyToAddress(nextPkey);
-
-				//Is this the last transaction?
-				var isLast = ((newValue <= 0) || (numberOfTransactions <= resa.results.length));
-					//Is there any money left for another transaction
+	
 				
-				//Generate the transaction and sign, then get the hash
-				var tx = cryptoscrypt.buildTx(
-					hashRedeemed,
-					(isReallyLast ? [0] : index),
-					[cryptoscrypt.sumArray(valueRedeemed)],
-					recipientAddress,
-					changeAddress,
-					[stepValue],
-					fee,
-					true
-				);
-				var signedTx = cryptoscrypt.signRawTx(tx[0].toHex(), pkey)
-				var newHash = signedTx.hash;
 
-				//Push results to the result variable
-				resa.changeAddresses.push(changeAddress);
-				resa.results.push(signedTx.raw);
+				if (previousNextPkey) {
+					var pkey = previousNextPkey
+				} else {
 
+					if (cryptoscrypt.validPkey(passphrase) == false) {
 
-				//
-				if (!isLast) {
-				// This is a recovery transaction generator, it is a double safety in case the password is forgotten, not used for now.
-				/*	var txRecovery = cryptoscrypt.buildTx(
-						[newHash],
-						[1],
-						[newValue],
-						[master.from],
+						cryptoscrypt.warp(
+							passphrase, 
+							salt, 
+							function(i){
+								$('h3[id=please-wait]').text( i.what + ' ' + Math.floor(100 * i.i/i.total) + '%') 
+							},
+							function(res) {
+								pkey = Bitcoin.ECKey.fromWIF(res.private);
+								succeeded();
+							}
+						)
+					} else {
+						pkey = Bitcoin.ECKey.fromWIF(passphrase);
+						succeeded();
+					}
+				}
+
+				var succeeded = function() {
+
+					var nextPkey = isReallyLast ? '' : cryptoscrypt.getPkey(passphrase + (1 + resa.results.length) , salt);
+					var changeAddress = isReallyLast ? '' : cryptoscrypt.pkeyToAddress(nextPkey);
+
+					//Is this the last transaction?
+					var isLast = ((newValue <= 0) || (numberOfTransactions <= resa.results.length));
+						//Is there any money left for another transaction
+					
+					//Generate the transaction and sign, then get the hash
+					var tx = cryptoscrypt.buildTx(
+						hashRedeemed,
+						(isReallyLast ? [0] : index),
+						[cryptoscrypt.sumArray(valueRedeemed)],
+						recipientAddress,
 						changeAddress,
-						[newValue - fee],
+						[stepValue],
 						fee,
 						true
 					);
-					var signedRecovery = cryptoscrypt.signRawTx(txRecovery[0].toHex(), nextPkey)
-					resa.recovery.push(signedRecovery.raw);
-				*/
-					nextHash(resa, passphrase, salt, [newHash], [1], [newValue], recipientAddress, stepValue, fee, numberOfTransactions, nextPkey)
+					var signedTx = cryptoscrypt.signRawTx(tx[0].toHex(), pkey)
+					var newHash = signedTx.hash;
+
+					//Push results to the result variable
+					resa.changeAddresses.push(changeAddress);
+					resa.results.push(signedTx.raw);
+
+
+					//
+					if (!isLast) {
+					// This is a recovery transaction generator, it is a double safety in case the password is forgotten, not used for now.
+					/*	var txRecovery = cryptoscrypt.buildTx(
+							[newHash],
+							[1],
+							[newValue],
+							[master.from],
+							changeAddress,
+							[newValue - fee],
+							fee,
+							true
+						);
+						var signedRecovery = cryptoscrypt.signRawTx(txRecovery[0].toHex(), nextPkey)
+						resa.recovery.push(signedRecovery.raw);
+					*/
+						nextHash(resa, passphrase, salt, [newHash], [1], [newValue], recipientAddress, stepValue, fee, numberOfTransactions, nextPkey)
+					}
+					def.resolve();
 				}
+				return def
 			}
 			// Calculate how much is 
-			var stepValue = _.pluck(this.recipients, 'amount')[0];
-			if (this.recipients.length > 1) {
-				window.alert('Chains are only supported with one recipient');
-				return
-			};
-			var numberOfTransactions = window.prompt('How many transactions would you like ? (Ignore or cancel for spending all the funds)');
-			numberOfTransactions = isNaN(parseInt(numberOfTransactions)) ? 100 : parseInt(numberOfTransactions) - 1 
-			
-			if (numberOfTransactions > 10) {
-				var answer = window.confirm( 'This might take over ' + ( (10 * Math.min(Math.ceil(cryptoscrypt.sumArray(_.pluck(this.unspents, 'value')) / stepValue), numberOfTransactions))) + ' secondes on a regular computer, do you want to continue anyways?')
-				if (answer == false) {
+			def.done(function(){
+				var stepValue = _.pluck(master.recipients, 'amount')[0];
+				if (master.recipients.length > 1) {
+					window.alert('Chains are only supported with one recipient');
 					return
+				};
+				var numberOfTransactions = window.prompt('How many transactions would you like ? (Ignore or cancel for spending all the funds)');
+				numberOfTransactions = isNaN(parseInt(numberOfTransactions)) ? 100 : parseInt(numberOfTransactions) - 1 
+				
+				if (numberOfTransactions > 10) {
+					var answer = window.confirm( 'master might take over ' + ( (10 * Math.min(Math.ceil(cryptoscrypt.sumArray(_.pluck(master.unspents, 'value')) / stepValue), numberOfTransactions))) + ' secondes on a regular computer, do you want to continue anyways?')
+					if (answer == false) {
+						return
+					}
 				}
-			}
-			nextHash(
-				resa,
-				this.passphrase,
-				this.salt,
-				_.pluck(this.unspents, 'transaction_hash'),
-				_.pluck(this.unspents, 'transaction_index'),
-				_.pluck(this.unspents, 'value'),
-				_.pluck(this.recipients, 'address'),
-				_.pluck(this.recipients, 'amount')[0],
-				this.fee,
-				numberOfTransactions
-			)
-			return resa;
+				nextHash(
+					resa,
+					master.passphrase,
+					master.salt,
+					_.pluck(master.unspents, 'transaction_hash'),
+					_.pluck(master.unspents, 'transaction_index'),
+					_.pluck(master.unspents, 'value'),
+					_.pluck(master.recipients, 'address'),
+					_.pluck(master.recipients, 'amount')[0],
+					master.fee,
+					numberOfTransactions
+				)
+				return resa;
+			})
+			
 		},
 
 		this.sign = function(passphrase, salt) {
@@ -604,22 +616,33 @@
 
 			// Display unsigned transaction
 			console.log(tx[0].toHex());
-			
-			// Calculate the private key;
-			var pkey = cryptoscrypt.getPkey(passphrase, salt);
-			this.signAddress = cryptoscrypt.pkeyToAddress(pkey);
-			cryptoscrypt.pkeyToAddress(pkey);
-			txs = cryptoscrypt.signTx(tx, pkey);
-			console.log(txs.hash)
-			// Perform the signatures
-			//newHash = cryptoscrypt.getHashFromTx(tx)
-			//Create the QR code
-			this.qrcode = txs[0].toHex().toString();
 
-			// Show the signed transaction Hex
-			//console.log(txs[0]);
-			//console.log(txs[0].toHex());
-			master.hash = cryptoscrypt.getHashFromTx(txs[0].toHex());
+			var processSig = function(wif, tx) {
+				pkey = Bitcoin.ECKey.fromWIF(wif);
+				master.signAddress = cryptoscrypt.pkeyToAddress(pkey);
+				txs = cryptoscrypt.signTx(tx, pkey);
+				this.qrcode = txs[0].toHex().toString();
+				master.hash = cryptoscrypt.getHashFromTx(txs[0].toHex());
+			}
+			def = $.Deferred();
+
+			if (cryptoscrypt.validPkey(passphrase) == true) {
+				processSig(pkey, tx)
+			} else {
+				cryptoscrypt.warp(
+					passphrase,
+					salt,
+					function(i){
+						$('h3[id=please-wait]').text( i.what + ' ' + Math.floor(100 * i.i/i.total) + '%') 
+					}, 
+					function(res){
+						processSig(res.private, tx)
+						def.resolve(txs)
+					}
+				)
+			}
+			return def
+
 		}
 
 		this.updateUnspent = function(from, success, fail) {

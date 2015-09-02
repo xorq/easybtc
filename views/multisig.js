@@ -39,6 +39,7 @@ define([
 			'click button[name=btn-edit-signature]' : 'openSubmitSignature',
 			'click button[name=btn-make-signature]' : 'makeSignature',
 			'click button[name=btn-create-signature]' : 'createSignature',
+			'click button[name=btn-raw-signature]' : 'rawSignature',
 			'click video' : 'cameraClick',
 			'click button[name=btn-delete-signature]' : 'deleteSignature',
 			'click button[name=btn-show-qr-signature]' : 'showSignature',
@@ -231,34 +232,97 @@ define([
 			$('span[name=chevron-create-signature][id=' + field + ']').toggleClass('glyphicon-triangle-left').toggleClass('glyphicon-triangle-bottom')
 		},
 
+		rawSignature: function(ev) {
+			var field = ev.currentTarget.id;
+			var rawSignature = window.prompt('Past your raw signature here');
+			/*this.model.pubkeys[field].signature = rawSignature;
+			this.model.signatures[field] = rawSignature;
+			this.renderSignature(null)*/
+			console.log(rawSignature);
+
+			//jaison = JSON.parse(data);
+			//console.log(sjcl.hash.sha256.hash(jaison.address + jaison.signature)[0]);
+				//this.model.pubkeys[field].signature = [rawSignature];
+			try{
+				this.model.signatures[field] = (JSON.parse(rawSignature).signature).split(',');
+			} catch(err) {
+				try{
+					this.model.signatures[field] = rawSignature.split(',');
+			} 	catch(err) {}
+			}
+
+
+
+			this.openSubmitSignature(ev)
+			this.renderSignature();
+		},
+
+		importQrSig: function(ev) {
+			var master = this;
+			var field = ev.currentTarget.id;
+			var title = 'Scan Signature';
+			var text = 'Here you can scan a signature only';
+
+			var callback = function(data) {
+				console.log(data);
+
+				jaison = JSON.parse(data);
+				console.log(sjcl.hash.sha256.hash(jaison.address + jaison.signature)[0]);
+				if (jaison.checksum == (sjcl.hash.sha256.hash(jaison.address + jaison.signature)[0]) && 
+				jaison.txchecksum == (sjcl.hash.sha256.hash(master.model.getTx())[0])) {
+					master.model.pubkeys[field].signature = jaison.signature;
+					return true
+				}
+			};
+			var callback2 = function() {
+				master.openSubmitSignature(ev)
+			};
+
+			dialogs.dataGetter(title, text , callback, callback2)
+		},
+
+
 		makeSignature: function(ev){
+			var master = this;
 			var field = ev.currentTarget.id;
 			var passphrase = $('input[name=passphrase-field][id=' + field + ']').val();
 			var salt = $('input[name=salt-field][id=' + field + ']').val();
 			if (!cryptoscrypt.validPkey(passphrase)) {
-				var strongWrap = cryptoscrypt.warp(passphrase,salt);
-				var strongSigningAddress = strongWrap[1];
-				var strongPkey = strongWrap[0];
-				if (strongSigningAddress != this.model.pubkeys[field].address) {
-					var weakPkey = (cryptoscrypt.weakWarp(passphrase,salt)[0]);
-					this.model.sign(weakPkey, field);
-					if (this.model.signingAddress != this.model.pubkeys[field].address){
-						window.alert('You entered the password/private key that is found to be not the one for "' + this.model.pubkeys[field].address + '", therefore this signature is invalid, however the application will continue for your testing purposes')
+				var strongWrap = cryptoscrypt.warp(
+					passphrase,
+					salt, 
+					function(i){
+						$('h3[id=please-wait]').text( i.what + ' ' + Math.floor(100 * i.i/i.total) + '%') 
+					},
+					function(res){
+						var strongSigningAddress = res.public;
+						var strongPkey = res.private;
+						if (strongSigningAddress != master.model.pubkeys[field].address) {
+							var weakPkey = (cryptoscrypt.weakWarp(passphrase,salt)[0]);
+							master.model.sign(weakPkey, field);
+							if (master.model.signingAddress != master.model.pubkeys[field].address){
+								window.alert('You entered the password/private key that is found to be not the one for "' + master.model.pubkeys[field].address + '", therefore master signature is invalid, however the application will continue for your testing purposes')
+							}
+						} else {
+							master.model.sign(res.private, field);
+						}
+						succeeded();
 					}
-				} else {
-					this.model.sign(strongWrap[0], field);
-				}
+					);
+				
 			} else {
 				this.model.sign(passphrase, field);
+				succeeded();
 			}
 			
-			
-			$('[name=signature-hex][id=' + field + ']').val(this.model.signatures[field])
-			this.renderSignature(null);
-			
-			// If there is enough signatures, automatically perform multisig
-			if (_.filter(this.model.signatures,function(signature){return signature}).length == this.model.numberOfSignatures) {
-				this.performMultisig();
+			var succeeded = function() {
+				$('[name=signature-hex][id=' + field + ']').val(this.model.signatures[field])
+				this.renderSignature(null);
+				
+				// If there is enough signatures, automatically perform multisig
+				if (_.filter(this.model.signatures,function(signature){return signature}).length == this.model.numberOfSignatures) {
+					this.performMultisig();
+				}
 			}
 		},
 
@@ -297,6 +361,11 @@ define([
 						</span>\
 						Create \
 					</button>\
+					<button class='btn btn-default' type='button' name='btn-raw-signature' id='<%=index%>'>\
+						<span name='chevron-edit-signature' id=<%=index%> class='glyphicon glyphicon-edit'>\
+						</span>\
+						Raw Signature \
+					</button>\
 					<button class='btn btn-default glyphicon glyphicon-trash' type='button' name='btn-delete-signature' id='<%=index%>'>\
 					</button>\
 				</div>\
@@ -320,6 +389,7 @@ define([
 							Sign !</button>\
 						</span>\
 					</div>\
+					<h3 id='please-wait'></h3>\
 				</div>\
 				<div class='col-xs-12' name='import-qr-sig' style='display:none'>\
 					<p>Hold a QR Code in front of your webcam.</p>\
@@ -439,30 +509,6 @@ define([
 			}
 		},
 
-		importQrSig: function(ev) {
-			var master = this;
-			var field = ev.currentTarget.id;
-			var title = 'Scan Signature';
-			var text = 'Here you can scan a signature only';
-
-			var callback = function(data) {
-				console.log(data);
-
-				jaison = JSON.parse(data);
-				console.log(sjcl.hash.sha256.hash(jaison.address + jaison.signature)[0]);
-				if (jaison.checksum == (sjcl.hash.sha256.hash(jaison.address + jaison.signature)[0]) && 
-				jaison.txchecksum == (sjcl.hash.sha256.hash(master.model.getTx())[0])) {
-					master.model.pubkeys[field].signature = jaison.signature;
-					return true
-				}
-			};
-			var callback2 = function() {
-				master.openSubmitSignature(ev)
-			};
-
-			dialogs.dataGetter(title, text , callback, callback2)
-		},
-
 		importQrTx: function(ev) {
 			this.model.newImport();
 			var master = this;
@@ -488,7 +534,7 @@ define([
 			var link = window.location.pathname + '?data=' + this.model.exportLinkData() + '#multisig';
 			var hash = sjcl.codec.base64.fromBits(sjcl.hash.sha256.hash(JSON.stringify(this.model.exportLinkData()))).toString().slice(0,20);
 			var tex = 'This <a style="text-align:center" href=' + link + '>link</a> opens this page with all your data, including signatures.</a>\
-			</br></br>This is the hash for all the data : </br> ' + '<a style="color:red">' + hash + '</a></br>You can use it to double check that all the data are the same on different devices</br></br> Also, you can use tools/import data to transfer the data using the following QRCodes:</br>And if you want the link in a single QR code, you can click this button: <button class="btn" name="show-link">Link Qr code</button></br>'
+			</br></br>This is the hash for all the data : </br> ' + '<a style="color:red">' + hash + '</a></br>You can use it to double check that all the data are the same on different devices</br></br> Also, you can use tools/import data to transfer the data using the following QRCodes:</br>And if you want the link in a single QR code, you can click this button (It won\'t work if you have too much data): <button class="btn" name="show-link">Link Qr code</button></br>'
 			var title = 'Data Link';
 			var data = this.model.exportData();
 			dialogs.dialogQrCodes(data, tex, title);
@@ -726,7 +772,7 @@ define([
 			this.renderAddress();
 			var hash = sjcl.codec.base64.fromBits(sjcl.hash.sha256.hash(JSON.stringify(this.model.exportLinkData()))).toString().slice(0,20);
 			if ((hash != '5m7n0AV4A1joXBDgkg56') && ( hash !='t4Wnyse6w/XlcRH4WLvw')) {
-				this.updateUnspent();
+				//this.updateUnspent();
 			}
 		},
 

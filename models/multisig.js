@@ -133,7 +133,6 @@
 				window.alert('There is not enough money available');
 				return;
 			}
-
 			// Build the unsigned transaction;
 			var tx = cryptoscrypt.buildTx(
 			  _.pluck(this.unspents, 'transaction_hash'),
@@ -145,6 +144,7 @@
 			  this.fee
 			);
 			this.rawTx = tx[0].toHex()
+
 			var tx = Bitcoin.Transaction.fromHex(tx[0].toHex());
 			var txb = Bitcoin.TransactionBuilder.fromTransaction(tx);
 
@@ -330,22 +330,24 @@
 		this.getAddressUnspent = function() {
 			var master = this;
 			success = function(data) {
-				console.log(typeof(data.unspent_outputs));;
+				if (!data){console.log('cancelling');return}
+				console.log(data);
+				console.log(typeof(data.data.outputs));;
 				//master.unspents = data.data.outputs;
 				//master.balance = cryptoscrypt.sumArray(_.pluck(data.data.outputs, 'value'))
 				master.unspents = [{}];
 
-				_.each(data.unspent_outputs, function(output, index) {
+				_.each(data.data.outputs, function(output, index) {
 
-					s = output.tx_hash;
+					s = output.transaction_hash;
 
 					result = ''
 					for (var i = 0; i <=s.length-2; i=i+2) {
 						result = ((s.substring(i,i+2)) + result);
 					}
 
-					master.unspents[index].transaction_hash = result;
-					master.unspents[index].transaction_index = output.tx_output_n;
+					master.unspents[index].transaction_hash = output.transaction_hash;
+					master.unspents[index].transaction_index = output.transaction_index;
 					master.unspents[index].value = output.value;
 
 				});
@@ -355,6 +357,7 @@
 				console.log('couldnt find the unspent data')
 				this.unspents = [];
 			};
+			console.log(this.multisig.address)
 			if (this.multisig.address){
 				return cryptoscrypt.getJSONrequest('https://api.biteasy.com/blockchain/v1/addresses/' + this.multisig.address + '/unspent-outputs?per_page=100&callback=?refreshSection', success, fail);
 				/*

@@ -3,8 +3,10 @@ define([
 	'underscore', 
 	'backbone', 
 	'models/qrcode',
-	'models/currencylist'
-], function($, _, Backbone, qrcode, CurrencyList){
+	'models/currencylist', 
+	'models/dialogs'
+], function($, _, Backbone, qrcode, CurrencyList, Dialogs){
+
 
 	$.createCache = function( requestFunction ) {
 		var cache = {};
@@ -43,6 +45,7 @@ define([
 	var amount = 0;
 	var symbol = '';
 	var btcFiat = 0;
+	var websocket = null;
 
 	var Coinvoice = Backbone.View.extend({
 		el: $('#contents'),
@@ -52,12 +55,100 @@ define([
 			'change select[id=currency]': 'updateRate', 
 			'keyup input[id=fiat]': 'updateFiat',
 			'blur input[id=address]': 'updateInput',
+			'change input[id=address]': 'updateInput',
 		}, 
-
 // VIEWS
 
+		monitorAddress: function(bitcoin_address){
+			var master = this;
+			console.log(bitcoin_address)
+			var timeout = false;
+			var wsUri = "wss://ws.blockchain.info/inv";
+			var output;
+			
+			function init() {
+
+
+				try{timeout = true; this.websocket.close()} catch(err){timeout = false}
+				testWebSocket();
+				$('#btcSymbol').css('background-color','lightgreen')
+			}
+
+			function testWebSocket() {
+				this.websocket = new this.WebSocket(wsUri);
+				this.websocket.onopen = function(evt) { onOpen(evt) };
+				this.websocket.onclose = function(evt) { onClose(evt) };
+				this.websocket.onmessage = function(evt) { onMessage(evt) };
+				this.websocket.onerror = function(evt) { onError(evt) };
+			}
+			function closeWebSocket() {
+				timeout = true;
+				this.websocket.close()
+			}
+			function onOpen(evt) {
+				console.log(bitcoin_address)
+				writeToScreen("CONNECTED");
+				//addr_sub = 1EPAYji8HW278XeqKnzEESJNKcArMa59A8
+				//doSend('{"op":"addr_sub", "addr":"' + "1LuckyP83urTUEJE9YEaVG2ov3EDz3TgQw" + '"}');
+				doSend('{"op":"addr_sub", "addr":"' + bitcoin_address + '"}');
+				setTimeout(closeWebSocket, 120000)
+			}
+			function onClose(evt) {
+				if (timeout == false) {
+					init();
+					return
+				}
+				timeout = false;
+				$('#btcSymbol').css('background-color','#FF5C5C')
+				writeToScreen("DISCONNECTED");
+			}
+			function onMessage(evt) {
+				master.currency = $('select[id=currency]', master.$el).val()
+				var def = $.Deferred();
+				master.getBtcRate(def, master.currency);
+				def.done(function(rate){
+					console.log(rate)
+					rate = rate.replace(/,/g , '')
+					master.btcFiat = rate;
+					master.updateFiat();
+					master.updatePage();
+
+					_.each($.parseJSON(evt.data).x.out, function(item, id) {
+						if (item.addr == bitcoin_address) {
+							writeToScreen(item.value);
+							var ratePerBTC = Math.floor(100 * master.btcFiat ) / 100;
+							Dialogs.normalOne('You just got ' + Math.floor(10000 * (ratePerBTC * (item.value / 100000000)))/10000 + ' ' + master.currency , 'Payment received');
+							timeout = true;
+							closeWebSocket();
+						}
+				})
+
+
+
+
+
+
+				})
+
+
+				;
+				//websocket.close();
+			}
+			function onError(evt) {
+				writeToScreen(evt.data);
+			}
+			function doSend(message) {
+				writeToScreen("SENT: " + message);
+				this.websocket.send(message);
+			}
+			function writeToScreen(message) {
+				console.log(message) 
+			}  
+			init();
+		},
 		// Called at page initialization
 		render: function() {
+			try{this.websocket.close()} catch(err){}
 			//this.getBtcRate('THB').done(function(data){console.log(data)})
 			master = this;
 			// Get parameters
@@ -74,6 +165,9 @@ define([
 				currencies: currencies
 			}));
 
+			if (this.address) {
+				master.monitorAddress(this.address);
+			}
 			// If onename is specified, resolve it and update the page
 			if (this.onename) {
 				this.lookupOnename(this.onename).done(function(data) {
@@ -84,10 +178,12 @@ define([
 					master.address = data.address;
 					master.thumb = data.avatar;
 					master.updatePage();
+					master.monitorAddress(master.address);
 				});
 			};
 			this.updateRate();
 			this.updatePage();
+
 		},
 
 		// Called by event inputAddress
@@ -99,6 +195,7 @@ define([
 			if (cryptoscrypt.validAddress(input) == true) {
 				this.address = input;
 				master.updatePage();
+				master.monitorAddress(input);
 	    		return
 			};
 
@@ -109,6 +206,7 @@ define([
 				$('input[id=address]').val(master.address);
 				master.thumb = data.avatar;
 				master.updatePage();
+				master.monitorAddress(master.address);
 			});
 		},
 
@@ -120,13 +218,17 @@ define([
 			this.fiat = $('input[id=fiat]', this.$el).val();
 			//special case for BTC since it is not resolved by https://rate-exchange.appspot.com
 			if (this.currency == 'BTC') {
+				master.btcFiat = 1;
 				master.btcUsd = 1;
 				master.rate = 1;
 				master.updateFiat();
 			} else {
 				//Get Rates into btcUsd and rate, when it is done, update the page
-				this.getBtcRate(this.currency).done(function(rate){
+				var def = $.Deferred();
+				this.getBtcRate(def, this.currency);
+				def.done(function(rate){
 					console.log(rate)
+					rate = rate.replace(/,/g , '')
 					master.btcFiat = rate;
 					master.updateFiat();
 					master.updatePage();
@@ -146,7 +248,6 @@ define([
 		updateFiat: function() {
 			this.fiat = $('input[id=fiat]').val();
 			this.amount = Math.floor(10000 * (this.fiat / (this.btcFiat))) / 10000;
-			console.log(this.amount);
 			this.updatePage();
 		},
 
@@ -165,8 +266,8 @@ define([
 			var currency = '?currency=' + this.currency;
 			var address = this.address ? '&address=' + this.address : '';
 			var onename = this.onename ? '&onename=' + this.onename : '';
-			var link = window.location.pathname + currency + address + onename + '#coinvoice';
-			$('div[id=link]').html("<a href=" + link + ">Link to this page</a>");
+			var link = window.location.pathname + currency + address + onename + '#receive';
+			$('div[id=link]').html("</br></br></br></br></br><a href=" + link + ">Link to this page</a>");
 		},
 
 		// Called in updatePage
@@ -182,12 +283,13 @@ define([
 
 		// Called in updatePage, updateQr
 		makeQrCode: function() {
-			var qrcode = new QRCode("qrcode-address-image", { width: 160, height: 160, correctLevel: QRCode.CorrectLevel.H });
+			var qrcode = new QRCode("qrcode-address-image", { width: 260, height: 260, correctLevel: QRCode.CorrectLevel.H });
 			var data = 'bitcoin:' + this.address + (this.amount ? '?amount=' + this.amount : '');
 			qrcode.makeCode(data);
 			if (this.thumb) {
 				this.drawThumb();
 			};
+			$('canvas').css('border', '20px solid #FFFFFF')
 		},
 
 		// Called in updatePage, makeQrCode
@@ -197,7 +299,7 @@ define([
 				var image = new Image();
 				var ctx = $('canvas')[0].getContext('2d');
 				image.src = url;
-				ctx.drawImage(image, 60, 60, 40, 40);
+				ctx.drawImage(image, 90, 90, 80, 80);
 			}
 			$.loadImage(url).done(draw);
 		},
@@ -230,26 +332,42 @@ define([
 		},
 
 		// Called in updateRate
- 		getBtcRate: function(fiat) {
- 			deff = $.Deferred();
- 			var longURL = 'BTC_' + fiat + '&compact=y';
- 			success = function(data) {
- 				deff.resolve(data['BTC_' + fiat].val)
- 			}
-			var ud = 'json'+(Math.random()*100).toString().replace(/./g,''),
-				// Define API URL:
-				API = 'http://www.freecurrencyconverterapi.com/api/v3/convert?q=';
+ 		getBtcRate: function(def, fiat) {
+ 			
+ 			
+ 			(function() {
+				var API = "http://api.coindesk.com/v1/bpi/currentprice/" + fiat + ".json";
+				console.log(API)
 
-			window[ud]= function(o){ success && success(o); };
+					$.getJSON( API, function(data){
+						def.resolve(data.bpi[fiat].rate)
+					})
+					/*.done(function( data ) {
+						console.log(data)
+					});*/
+				})();
+
+ 			/*var longURL = fiat + '.json';
+ 			success = function(data) {
+ 				console.log(data)
+ 				deff.resolve(data)
+ 			}
+			var ud = 'json'+(Math.random()*100).toString().split('.')[0]
+				// Define API URL:
+				console.log(ud)
+			
+			
+				API = 'http://api.coindesk.com/v1/bpi/currentprice/';
+			//window[ud]= function(o){ success && success(o); };
 			// Append new SCRIPT element to BODY with SRC of API:
 			document.getElementsByTagName('body')[0].appendChild((function(){
 				var s = document.createElement('script');
 				s.type = 'text/javascript';
-				s.src = API + (longURL) + '&callback=' + ud;
+				s.src = API + (longURL);
 				console.log(s.src)
 				return s;
-			})())
-			return deff
+			})())*/
+			return def
 
  			//cryptoscrypt.getJSONrequest('http://www.freecurrencyconverterapi.com/api/v3/convert?q=BTC_' + fiat + '&compact=y', callback)
 			/*var def = $.Deferred();
@@ -264,9 +382,16 @@ define([
 
 		// Called in render
 		getParameterByName: function(name) {
+
 		    name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
 		    var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
 		        results = regex.exec(location.search);
+		    try {
+		    	console.log(results)
+		    	if(results != null) {
+					$('.nav > li').css('display', 'none')
+				}
+		    } catch(err) {}
 		    return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
 		},
 	});
